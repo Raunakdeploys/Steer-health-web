@@ -1,7 +1,7 @@
 import { db } from './index.ts';
 import { papers, evidencePassages, claims, deliverables } from './schema.ts';
 import { eq, and, desc } from 'drizzle-orm';
-import {
+import type {
   PaperRecord,
   EvidencePassage,
   ClaimRecord,
