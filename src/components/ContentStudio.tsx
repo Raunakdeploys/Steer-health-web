@@ -323,7 +323,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
 
   const handleCopyFullPostPackage = () => {
     if (!carousel) return;
-    const caption = carousel.caption_copy || '';
+    const caption = (languageMode === 'HINGLISH' && carousel.hinglish_caption ? carousel.hinglish_caption : carousel.caption) || '';
     const slidesText = carousel.slides
       .map((s, idx) => {
         const headline = languageMode === 'HINGLISH' && s.hinglish_headline ? s.hinglish_headline : s.headline;
@@ -1236,15 +1236,18 @@ CITATION: ${slide.source_citation || activePaper.journal} · steerclub.com`;
                       ) : null}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="p-8 text-center text-[#B58777]">
-                Generate content to preview carousel deck.
-              </div>
-            )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="p-8 text-center text-[#B58777]">
+          Generate content to preview carousel deck.
         </div>
       )}
+    </div>
+  )}
 
 
       {/* 04. FORMAT 2: STATIC POST WORKSPACE */}
