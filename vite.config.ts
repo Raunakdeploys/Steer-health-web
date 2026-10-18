@@ -22,5 +22,21 @@ export default defineConfig(() => {
     preview: {
       allowedHosts: true as const,
     },
+    build: {
+      chunkSizeWarningLimit: 1200,
+      sourcemap: false,
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) return 'firebase';
+              if (id.includes('pdfjs-dist')) return 'pdf';
+              if (id.includes('react')) return 'vendor';
+            }
+          },
+        },
+      },
+    },
   };
 });

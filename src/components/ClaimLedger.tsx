@@ -678,13 +678,15 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                 </span>
 
                 <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => handleApprove(activeClaim)}
-                    className="w-full py-2.5 px-3 text-xs font-semibold bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Sign Off & Approve Claim (Doctor Verified)</span>
-                  </button>
+                  {activeClaim.review_status !== 'HUMAN_APPROVED' && (
+                    <button
+                      onClick={() => handleApprove(activeClaim)}
+                      className="w-full py-2.5 px-3 text-xs font-semibold bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Sign Off & Approve Claim (Doctor Verified)</span>
+                    </button>
+                  )}
 
                   <div className="grid grid-cols-3 gap-2">
                     <button

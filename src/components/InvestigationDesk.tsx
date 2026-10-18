@@ -665,13 +665,15 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
                     EDITORIAL DECISION ACTION
                   </span>
 
-                  <button
-                    onClick={() => handleApprove(activeClaim)}
-                    className="w-full py-2 px-3 text-xs font-semibold bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Approve Claim for Content Studio</span>
-                  </button>
+                  {activeClaim.review_status !== 'HUMAN_APPROVED' && (
+                    <button
+                      onClick={() => handleApprove(activeClaim)}
+                      className="w-full py-2 px-3 text-xs font-semibold bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Approve Claim for Content Studio</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => handleAuditSingleClaimViaGemini(activeClaim)}
