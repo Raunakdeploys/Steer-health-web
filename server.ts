@@ -18,7 +18,7 @@ import {
   deleteUserClaim,
   getUserDeliverables,
   saveUserDeliverable,
-} from './src/db/storage-sql.ts';
+} from './src/db/storage-firestore.ts';
 import {
   ALL_PAPERS,
   ALL_PASSAGES,
