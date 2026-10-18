@@ -127,6 +127,29 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   const [reelElapsedSeconds, setReelElapsedSeconds] = useState(0);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  const [renderedVideoUrl, setRenderedVideoUrl] = useState<string | null>(null);
+
+  const handleRenderReelVideo = async () => {
+    if (!reel || !reel.scenes || reel.scenes.length === 0) return;
+    setIsVideoRecording(true);
+    setVideoProgress(0);
+    setVideoStatusText('Initializing 9:16 Canvas & MediaRecorder...');
+    try {
+      const videoBlob = await recordReelVideo(reel.scenes, (pct, status) => {
+        setVideoProgress(pct);
+        setVideoStatusText(status);
+      });
+      const url = URL.createObjectURL(videoBlob);
+      setRenderedVideoUrl(url);
+      setIsVideoRecording(false);
+      setVideoStatusText('Reel MP4/WebM successfully rendered!');
+    } catch (err: any) {
+      console.error('Reel video rendering error:', err);
+      setIsVideoRecording(false);
+      setVideoStatusText(`Error rendering reel video: ${err.message || err}`);
+    }
+  };
+
   // Reel playback timer loop
   useEffect(() => {
     let interval: any = null;
@@ -1494,6 +1517,56 @@ CITATION: ${slide.source_citation || activePaper.journal} · steerclub.com`;
                       width: `${(reelElapsedSeconds / (reel.total_duration_sec || 1)) * 100}%`,
                     }}
                   />
+                </div>
+
+                {/* Render MP4 / WebM Reel Video Action Bar */}
+                <div className="p-4 bg-[#F5EBDF] border border-[#E6CBBD] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-serif text-sm font-bold text-[#351D1D]">Render & Export Reel Video (MP4 / WebM)</h4>
+                      <p className="text-[11px] text-[#B58777]">
+                        Generate real playable video file using HTML5 Canvas & MediaRecorder pipeline.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleRenderReelVideo}
+                      disabled={isVideoRecording}
+                      className="px-4 py-2 bg-[#C04E2A] hover:bg-[#a63f1f] disabled:opacity-50 text-[#FFFDF9] text-xs font-semibold rounded-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    >
+                      <Video className="w-4 h-4" />
+                      <span>{isVideoRecording ? `Rendering (${videoProgress}%)` : 'Render Reel Video'}</span>
+                    </button>
+                  </div>
+                  {isVideoRecording && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-mono text-[#661414]">
+                        <span>{videoStatusText}</span>
+                        <span>{videoProgress}%</span>
+                      </div>
+                      <div className="w-full bg-white h-2 rounded-xs overflow-hidden border border-[#E6CBBD]">
+                        <div className="bg-[#C04E2A] h-2 transition-all duration-300" style={{ width: `${videoProgress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  {renderedVideoUrl && (
+                    <div className="p-3 bg-white border border-[#E6CBBD] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-[#416C49] flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4" /> Reel Video Rendered Successfully (1080x1920 9:16)
+                        </span>
+                        <a
+                          href={renderedVideoUrl}
+                          download={`steer-reel-${reel.id || 'export'}.webm`}
+                          className="px-3 py-1 bg-[#416C49] hover:bg-[#325438] text-white text-xs font-semibold rounded-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Download MP4/WebM Video
+                        </a>
+                      </div>
+                      <div className="aspect-[9/16] max-w-[220px] mx-auto bg-black rounded-xl overflow-hidden border border-[#E6CBBD]">
+                        <video src={renderedVideoUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Scene Rows */}

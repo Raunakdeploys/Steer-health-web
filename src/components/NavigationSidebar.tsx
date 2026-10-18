@@ -16,7 +16,6 @@ import {
   BookOpen,
   Calendar,
   Award,
-  ChevronDown,
 } from 'lucide-react';
 
 export type ActiveTab =
@@ -166,67 +165,59 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
           </span>
         </div>
 
-        {/* Active Paper Document Switcher - Redesigned & Clean */}
-        <div className="p-3.5 border-b border-[#DED2C5] bg-[#F8F2EB]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[#661414] font-bold flex items-center gap-1">
-              <BookOpen className="w-3 h-3 text-[#C04E2A]" />
+        {/* Active Paper Document Switcher */}
+        <div className="px-3.5 py-3 border-b border-[#DED2C5] bg-[#FFFDF9]/60">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-semibold">
               ACTIVE SOURCE
             </span>
             {activePaper?.is_demo && (
-              <span className="text-[9px] font-mono uppercase tracking-wider bg-[#C04E2A]/10 text-[#C04E2A] px-1.5 py-0.5 rounded-xs font-bold">
+              <span className="text-[9px] font-mono uppercase tracking-wider text-[#BB4B2D] font-bold">
                 DEMO
               </span>
             )}
           </div>
 
           {activePaper ? (
-            <div className="space-y-2.5">
+            <div className="space-y-1">
               <div
-                className="p-2.5 bg-[#FFFDF9] border border-[#DED2C5] rounded-lg shadow-2xs space-y-1 cursor-pointer hover:border-[#661414] transition-colors"
+                className="font-serif text-xs font-semibold text-[#391E1D] line-clamp-2 leading-snug cursor-pointer hover:text-[#74191D]"
                 onClick={() => handleNavClick('papers')}
-                title="Click to view full paper details"
+                title={activePaper.title}
               >
-                <div className="font-serif text-xs font-bold text-[#351D1D] line-clamp-2 leading-snug">
-                  {activePaper.title}
-                </div>
-                <div className="flex items-center justify-between text-[10px] font-mono text-[#8B6A60]">
-                  <span>{activePaper.year}</span>
-                  <span className="truncate max-w-[120px]">{activePaper.journal || 'Research Journal'}</span>
-                </div>
+                {activePaper.title}
               </div>
-
-              {/* Prominent Paper Switcher Dropdown */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono text-[#8B6A60] block font-medium">
-                  Switch Active Research Paper ({papers.length}):
-                </label>
-                <div className="relative">
-                  <select
-                    value={activePaper?.paper_id}
-                    onChange={(e) => onSwitchPaper(e.target.value)}
-                    className="w-full bg-[#FFFDF9] border border-[#351D1D]/20 text-[#351D1D] text-xs font-semibold py-2 px-2.5 rounded-lg shadow-2xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#661414]/30 focus:border-[#661414]"
-                  >
-                    {papers.map((p) => (
-                      <option key={p.paper_id} value={p.paper_id}>
-                        {p.title.length > 38 ? p.title.substring(0, 38) + '...' : p.title}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-[#351D1D]">
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </div>
-                </div>
+              <div className="flex items-center gap-2 text-[10px] font-mono text-[#786A61]">
+                <span>{activePaper.year}</span>
+                <span>·</span>
+                <span className="truncate max-w-[110px]">{activePaper.journal || 'Journal'}</span>
               </div>
             </div>
           ) : (
             <button
               onClick={() => handleNavClick('papers')}
-              className="w-full py-2 px-3 bg-[#FFFDF9] border border-dashed border-[#351D1D]/30 rounded-lg text-xs font-semibold text-[#661414] hover:bg-[#F5EBDF] flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+              className="w-full text-left py-1 text-xs text-[#74191D] hover:underline font-medium flex items-center gap-1 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Ingest New Research Paper</span>
+              <Plus className="w-3 h-3" />
+              <span>Ingest paper...</span>
             </button>
+          )}
+
+          {papers.length > 1 && (
+            <div className="mt-2 pt-2 border-t border-[#DED2C5] flex items-center justify-between text-[10px]">
+              <span className="text-[#786A61] font-mono">Switch:</span>
+              <select
+                value={activePaper?.paper_id}
+                onChange={(e) => onSwitchPaper(e.target.value)}
+                className="bg-[#FFFDF9] border border-[#DED2C5] text-[#391E1D] text-[10px] font-medium py-0.5 px-1.5 rounded-xs max-w-[130px] truncate cursor-pointer focus:outline-none focus:border-[#74191D]"
+              >
+                {papers.map((p) => (
+                  <option key={p.paper_id} value={p.paper_id}>
+                    {p.title.substring(0, 24)}...
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
 

@@ -421,11 +421,8 @@ export default function App() {
 
   const handleGenerateAllContent = async () => {
     if (!activePaper) return;
-    const currentPaperClaims = claims.filter((c) => c.paper_id === activePaper.paper_id);
-    const approved = currentPaperClaims.filter((c) => c.review_status === 'HUMAN_APPROVED');
-
-    if (approved.length === 0) {
-      alert('Cannot generate content without human-approved claims. Please ensure at least one claim is approved in the Ledger.');
+    if (approvedClaims.length === 0) {
+      alert('Cannot generate content without human-approved claims.');
       return;
     }
 
@@ -435,7 +432,7 @@ export default function App() {
       body: JSON.stringify({
         paper_id: activePaper.paper_id,
         paper_title: activePaper.title,
-        approved_claims: approved,
+        approved_claims: approvedClaims,
       }),
     });
 
