@@ -1237,7 +1237,6 @@ CITATION: ${slide.source_citation || activePaper.journal} · steerclub.com`;
                     </div>
                   </div>
                 </div>
-
               </div>
             ) : (
               <div className="p-8 text-center text-[#B58777]">
@@ -1246,6 +1245,7 @@ CITATION: ${slide.source_citation || activePaper.journal} · steerclub.com`;
             )}
         </div>
       )}
+
 
       {/* 04. FORMAT 2: STATIC POST WORKSPACE */}
       {activeTab === 'static' && (
