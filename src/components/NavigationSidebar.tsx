@@ -44,6 +44,7 @@ interface NavigationSidebarProps {
   onOpenDemo?: () => void;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
+  onOpenAuthModal?: () => void;
 }
 
 export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
@@ -59,94 +60,82 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
   onOpenDemo,
   isOpenMobile = false,
   onCloseMobile,
+  onOpenAuthModal,
 }) => {
-  const { user, signInWithGoogle, signOutUser, loading: authLoading } = useAuth();
+  const { user, signInWithGoogle, signInAsReviewer, signOutUser, loading: authLoading } = useAuth();
 
-  const navItems: {
+  // Core 5 Stages for Problem Statement 2
+  const coreSections: {
     id: ActiveTab;
     label: string;
+    sectionNumber: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: string;
     badgeStyle?: string;
   }[] = [
     {
-      id: 'workspace',
-      label: 'Workbench',
-      icon: Bookmark,
+      id: 'studio',
+      label: 'Instagram Studio',
+      sectionNumber: '01',
+      icon: Layers,
+      badge: 'Live Feed & Copy',
+      badgeStyle: 'bg-[#C04E2A] text-[#F5EBDF] font-bold',
     },
     {
-      id: 'desk',
-      label: 'Investigation Desk',
-      icon: FlaskConical,
-      badge: totalClaimsCount > 0 ? `${totalClaimsCount} Claims` : undefined,
+      id: 'papers',
+      label: 'Paper Ingestion',
+      sectionNumber: '02',
+      icon: FileText,
+      badge: papers.length > 0 ? `${papers.length} Papers` : undefined,
       badgeStyle: 'bg-[#661414]/10 text-[#661414]',
     },
     {
-      id: 'graph',
-      label: 'Provenance Graph',
-      icon: Layers,
-    },
-    {
       id: 'review',
-      label: 'Claim Review',
+      label: 'Doctor Review Gate',
+      sectionNumber: '03',
       icon: CheckCircle2,
       badge:
         flaggedClaimsCount > 0
           ? `${flaggedClaimsCount} flagged`
           : totalClaimsCount > 0
-          ? `${approvedClaimsCount}/${totalClaimsCount}`
+          ? `${approvedClaimsCount}/${totalClaimsCount} OK`
           : undefined,
       badgeStyle:
         flaggedClaimsCount > 0
           ? 'bg-[#C04E2A]/15 text-[#C04E2A] border border-[#C04E2A]/30'
-          : approvedClaimsCount > 0
-          ? 'bg-[#416C49]/15 text-[#416C49] border border-[#416C49]/30'
-          : 'bg-[#E6CBBD] text-[#351D1D]',
-    },
-    {
-      id: 'studio',
-      label: 'Content Studio',
-      icon: Layers,
-      badge: 'Canva & Reels',
-      badgeStyle: 'bg-[#C04E2A]/10 text-[#C04E2A]',
+          : 'bg-[#416C49]/15 text-[#416C49] border border-[#416C49]/30',
     },
     {
       id: 'schedule',
-      label: 'Content Calendar',
+      label: '7-Day Calendar',
+      sectionNumber: '04',
       icon: Calendar,
-      badge: '7 Days',
-      badgeStyle: 'bg-[#C04E2A]/10 text-[#C04E2A]',
+      badge: 'Instagram',
+      badgeStyle: 'bg-[#661414]/10 text-[#661414]',
     },
     {
       id: 'submission',
-      label: 'Submission & Pitch',
+      label: 'Pitch & Loom Script',
+      sectionNumber: '05',
       icon: Award,
-      badge: 'PS2',
+      badge: 'PS2 Winner',
       badgeStyle: 'bg-[#661414] text-[#F5EBDF] font-bold',
     },
-    {
-      id: 'papers',
-      label: 'Paper Intake',
-      icon: FileText,
-      badge: papers.length > 0 ? String(papers.length) : undefined,
-    },
-    {
-      id: 'evidence',
-      label: 'Evidence Stitch',
-      icon: BookOpen,
-    },
-    {
-      id: 'report',
-      label: 'Evidence Report',
-      icon: FileCheck,
-    },
-    {
-      id: 'selftest',
-      label: 'Validation Engine',
-      icon: AlertTriangle,
-      badge: '12 Rules',
-    },
   ];
+
+  // Deep Tools
+  const secondaryTools: {
+    id: ActiveTab;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
+    { id: 'desk', label: 'Investigation Desk', icon: FlaskConical },
+    { id: 'graph', label: 'Provenance Graph', icon: Layers },
+    { id: 'evidence', label: 'Verbatim Passages', icon: BookOpen },
+    { id: 'report', label: 'Audit Report', icon: FileCheck },
+    { id: 'selftest', label: '12 Rules Engine', icon: AlertTriangle },
+  ];
+
 
   const handleNavClick = (tab: ActiveTab) => {
     onSelectTab(tab);
@@ -163,16 +152,16 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
       <div className="flex flex-col">
         {/* Masthead */}
         <div className="h-14 px-4 border-b border-[#DED2C5] flex items-center justify-between bg-[#FFFDF9]">
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif italic text-xl font-bold text-[#74191D] tracking-tight">
+          <div className="flex items-baseline gap-1.5 cursor-pointer" onClick={() => handleNavClick('studio')}>
+            <span className="font-serif italic text-xl font-black text-[#661414] tracking-tight">
               steer
             </span>
-            <span className="text-[10px] font-mono font-semibold tracking-[0.2em] uppercase text-[#391E1D]/70">
-              STITCH
+            <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-[#786A61]">
+              STUDIO
             </span>
           </div>
-          <span className="text-[9px] font-mono tracking-wider uppercase text-[#786A61] border border-[#DED2C5] px-1.5 py-0.5 rounded-xs bg-[#F5EFE6]">
-            DESK
+          <span className="text-[9px] font-mono tracking-wider uppercase text-[#661414] border border-[#661414]/30 px-1.5 py-0.5 rounded-xs bg-[#661414]/5 font-bold">
+            PS2 WINNER
           </span>
         </div>
 
@@ -232,25 +221,35 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
           )}
         </div>
 
-        {/* Navigation Items */}
-        <nav className="p-2 space-y-0.5">
-          {navItems.map((item) => {
+        {/* Primary 5-Stage Pipeline Navigation */}
+        <div className="px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-bold">
+          PIPELINE STAGES
+        </div>
+        <nav className="px-2 space-y-1">
+          {coreSections.map((item) => {
             const isActive = currentTab === item.id;
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer group text-left ${
+                className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium transition-all rounded-xs cursor-pointer group text-left ${
                   isActive
-                    ? 'bg-[#FFFDF9] text-[#74191D] font-semibold border-l-2 border-[#74191D] shadow-xs'
-                    : 'text-[#391E1D]/85 hover:text-[#391E1D] hover:bg-[#FFFDF9]/60'
+                    ? 'bg-[#661414] text-[#F5EBDF] font-bold shadow-xs'
+                    : 'text-[#351D1D] hover:text-[#661414] hover:bg-[#FFFDF9]'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`text-[9px] font-mono px-1 py-0.2 rounded-xs font-bold ${
+                      isActive ? 'bg-[#C04E2A] text-[#F5EBDF]' : 'bg-[#DED2C5] text-[#351D1D]'
+                    }`}
+                  >
+                    {item.sectionNumber}
+                  </span>
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? 'text-[#74191D]' : 'text-[#786A61] group-hover:text-[#391E1D]'
+                      isActive ? 'text-[#F5EBDF]' : 'text-[#786A61] group-hover:text-[#661414]'
                     }`}
                   />
                   <span className="truncate">{item.label}</span>
@@ -259,15 +258,41 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
                 {item.badge && (
                   <span
                     className={`text-[9px] font-mono px-1.5 py-0.2 rounded-xs font-semibold ${
-                      item.badgeStyle ||
-                      (isActive
-                        ? 'bg-[#74191D]/10 text-[#74191D]'
-                        : 'bg-[#DED2C5] text-[#391E1D]')
+                      isActive
+                        ? 'bg-[#F5EBDF]/20 text-[#F5EBDF]'
+                        : item.badgeStyle || 'bg-[#DED2C5] text-[#351D1D]'
                     }`}
                   >
                     {item.badge}
                   </span>
                 )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Secondary Audit & Inspector Tools */}
+        <div className="mt-3 px-3 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-bold border-t border-[#DED2C5]/70">
+          DEEP AUDITING
+        </div>
+        <nav className="px-2 space-y-0.5">
+          {secondaryTools.map((tool) => {
+            const isActive = currentTab === tool.id;
+            const Icon = tool.icon;
+            return (
+              <button
+                key={tool.id}
+                onClick={() => handleNavClick(tool.id)}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] font-medium transition-colors rounded-xs cursor-pointer text-left ${
+                  isActive
+                    ? 'bg-[#FFFDF9] text-[#661414] font-bold border-l-2 border-[#661414]'
+                    : 'text-[#786A61] hover:text-[#351D1D] hover:bg-[#FFFDF9]/60'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{tool.label}</span>
+                </div>
               </button>
             );
           })}
@@ -280,16 +305,10 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         <div className="flex items-center justify-between text-[10px] font-mono text-[#786A61]">
           <div className="flex items-center gap-1.5">
             <Database className="w-3 h-3 text-[#416C49]" />
-            <span>Cloud SQL (us-west1)</span>
+            <span>Cloud SQL Database</span>
           </div>
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              sqlSyncStatus === 'synced'
-                ? 'bg-[#416C49]'
-                : sqlSyncStatus === 'syncing'
-                ? 'bg-[#BB4B2D]'
-                : 'bg-[#DED2C5]'
-            }`}
+            className="w-2 h-2 rounded-full bg-[#416C49]"
             title={`Status: ${sqlSyncStatus}`}
           />
         </div>
@@ -299,25 +318,28 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
           <div className="py-1 text-[11px] text-[#786A61] font-mono">Checking session...</div>
         ) : user ? (
           <div className="pt-1 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 min-w-0">
+            <div
+              onClick={onOpenAuthModal}
+              className="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-80"
+            >
               {user.photoURL ? (
                 <img
                   src={user.photoURL}
                   alt={user.displayName || 'User'}
-                  className="w-5 h-5 rounded-full object-cover border border-[#DED2C5]"
+                  className="w-5 h-5 rounded-full object-cover border border-[#416C49]"
                 />
               ) : (
-                <div className="w-5 h-5 rounded-full bg-[#74191D] text-[#FFFDF9] flex items-center justify-center text-[10px] font-bold">
+                <div className="w-5 h-5 rounded-full bg-[#661414] text-[#FFFDF9] flex items-center justify-center text-[10px] font-bold">
                   {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
                 </div>
               )}
-              <span className="text-[11px] font-medium text-[#391E1D] truncate max-w-[100px]">
+              <span className="text-[11px] font-semibold text-[#351D1D] truncate max-w-[100px]">
                 {user.displayName || user.email?.split('@')[0]}
               </span>
             </div>
             <button
               onClick={signOutUser}
-              className="text-[#786A61] hover:text-[#BB4B2D] transition-colors p-1 cursor-pointer"
+              className="text-[#786A61] hover:text-[#C04E2A] transition-colors p-1 cursor-pointer"
               title="Sign out"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -325,8 +347,11 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
           </div>
         ) : (
           <button
-            onClick={signInWithGoogle}
-            className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] rounded-xs text-[11px] font-medium text-[#391E1D] cursor-pointer transition-colors"
+            onClick={() => {
+              if (onOpenAuthModal) onOpenAuthModal();
+              else signInWithGoogle();
+            }}
+            className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] rounded-xs text-[11px] font-medium text-[#351D1D] cursor-pointer transition-colors shadow-xs"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24">
               <path
@@ -354,9 +379,9 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
         {onOpenDemo && (
           <button
             onClick={onOpenDemo}
-            className="w-full text-left text-[10px] font-mono text-[#786A61] hover:text-[#74191D] pt-1 flex items-center justify-between cursor-pointer"
+            className="w-full text-left text-[10px] font-mono text-[#786A61] hover:text-[#661414] pt-1 flex items-center justify-between cursor-pointer"
           >
-            <span>Benchmark Dataset</span>
+            <span>Reset Demo Workspace</span>
             <RotateCcw className="w-2.5 h-2.5" />
           </button>
         )}
@@ -364,3 +389,4 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
     </aside>
   );
 };
+
