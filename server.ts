@@ -71,6 +71,7 @@ app.use((req, res, next) => {
 
 // Shared Gemini AI client utility
 const apiKey = process.env.GEMINI_API_KEY || '';
+console.log('GEMINI_API_KEY detected:', !!apiKey);
 let aiClient: GoogleGenAI | null = null;
 if (apiKey) {
   aiClient = new GoogleGenAI({
@@ -82,6 +83,7 @@ if (apiKey) {
     },
   });
 }
+console.log('aiClient initialized:', !!aiClient);
 
 /**
  * Health check endpoint
@@ -1010,6 +1012,7 @@ Audit each claim independently. Return a JSON array matching the schema with one
  * Coordinates generation of Carousel, Static Post, and Vertical Reel strictly from approved claims
  */
 app.post('/api/generate-content', async (req: Request, res: Response) => {
+  console.log('API /api/generate-content received request');
   try {
     const { paper_title, approved_claims, paper_id } = req.body;
 
@@ -1381,8 +1384,11 @@ Generate the synchronized educational package adhering to the provided JSON sche
     return res.json({ carousel, static_post: staticPost, reel });
   } catch (err: any) {
     console.error('API Error in /api/generate-content:', err);
+    // Include full error details if available for debugging
     return res.status(500).json({
-      error: `Content generation failed: ${err?.message || 'Internal error'}.`,
+      error: `Content generation failed: ${err?.message || 'Internal error'}`,
+      details: err?.toString(),
+      stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined,
     });
   }
 });
