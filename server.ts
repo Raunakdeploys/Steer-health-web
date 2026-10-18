@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -1208,12 +1210,27 @@ app.post('/api/batch-pipeline', async (req: Request, res: Response) => {
   }
 });
 
-// Setup Vite middleware in dev or static files in production
+// Setup Vite middleware in dev or static files in production with auto-build fallback
 async function startServer() {
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+  const distPath = path.resolve(__dirname, 'dist');
+  const indexPath = path.join(distPath, 'index.html');
+
+  if (!fs.existsSync(indexPath)) {
+    console.log('[steer] dist/index.html not found. Attempting automatic build...');
+    try {
+      execSync('npm run build', { stdio: 'inherit' });
+    } catch (buildErr) {
+      console.warn('[steer] Automatic build failed, falling back to Vite dev middleware:', buildErr);
+    }
+  }
+
+  if (fs.existsSync(indexPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(indexPath);
     });
   } else {
     const vite = await createViteServer({
