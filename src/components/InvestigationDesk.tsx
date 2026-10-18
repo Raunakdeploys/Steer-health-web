@@ -70,6 +70,7 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
     initialSelectedEvidenceId || null
   );
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [isAuditing, setIsAuditing] = useState(false);
   const [mobileTab, setMobileTab] = useState<'source' | 'claim' | 'inspector'>('claim');
 
   // Edit modal
@@ -218,6 +219,34 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
     };
 
     onUpdateClaim(updated, false);
+  };
+
+  const handleAuditSingleClaimViaGemini = async (claim: ClaimRecord) => {
+    setIsAuditing(true);
+    try {
+      const response = await fetch('/api/audit-claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paper_title: activePaper?.title || '',
+          claims: [claim],
+          passages,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to audit claim.');
+      }
+
+      if (data.audited_claims && data.audited_claims[0]) {
+        onUpdateClaim(data.audited_claims[0], false);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to audit claim with Gemini 3.8 Flash.');
+    } finally {
+      setIsAuditing(false);
+    }
   };
 
   const handleFlag = (claim: ClaimRecord, note: string) => {
@@ -642,6 +671,20 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Approve Claim for Content Studio</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleAuditSingleClaimViaGemini(activeClaim)}
+                    disabled={isAuditing}
+                    className="w-full py-1.5 px-3 text-xs font-semibold bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#661414] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    title="Audit this claim against evidence passages with Gemini 3.8 Flash"
+                  >
+                    {isAuditing ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C04E2A]" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-[#C04E2A]" />
+                    )}
+                    <span>Audit with Gemini 3.8 Flash</span>
                   </button>
 
                   <div className="grid grid-cols-2 gap-2">
