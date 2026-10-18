@@ -195,7 +195,7 @@ export default function App() {
     null;
 
   // Handlers
-  const handleAddPaper = (newPaper: PaperRecord, newPassages: EvidencePassage[]) => {
+  const handleAddPaper = async (newPaper: PaperRecord, newPassages: EvidencePassage[]) => {
     const updatedPapers = [newPaper, ...papers.filter((p) => p.paper_id !== newPaper.paper_id)];
     const updatedPassages = [
       ...newPassages,
@@ -217,6 +217,85 @@ export default function App() {
     }
 
     setCurrentTab('evidence');
+
+    // Automatically trigger AI claim extraction and content generation for the newly uploaded document
+    try {
+      const claimsRes = await fetch('/api/generate-claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paper_id: newPaper.paper_id,
+          paper_title: newPaper.title,
+          passages: newPassages.map((p) => ({
+            evidence_id: p.evidence_id,
+            pdf_page_index: p.pdf_page_index,
+            verbatim_text: p.verbatim_text,
+            section: p.section,
+          })),
+        }),
+      });
+      const claimsData = await claimsRes.json();
+      if (claimsRes.ok && claimsData.claims && Array.isArray(claimsData.claims) && claimsData.claims.length > 0) {
+        const generatedClaims: ClaimRecord[] = claimsData.claims;
+        const updatedClaims = [
+          ...generatedClaims,
+          ...claims.filter((c) => c.paper_id !== newPaper.paper_id),
+        ];
+        setClaims(updatedClaims);
+        saveClaims(updatedClaims);
+        if (generatedClaims.length > 0) {
+          setSelectedClaimId(generatedClaims[0].claim_id);
+        }
+
+        const contentRes = await fetch('/api/generate-content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paper_id: newPaper.paper_id,
+            paper_title: newPaper.title,
+            approved_claims: generatedClaims,
+          }),
+        });
+        const contentData = await contentRes.json();
+        if (contentRes.ok) {
+          if (contentData.carousel) {
+            const updatedCarousels = [
+              contentData.carousel,
+              ...carousels.filter((c) => c.paper_id !== newPaper.paper_id),
+            ];
+            setCarousels(updatedCarousels);
+            saveCarousels(updatedCarousels);
+            if (idToken) {
+              saveDeliverableToSql(idToken, newPaper.paper_id, 'CAROUSEL', contentData.carousel.id, contentData.carousel).catch(console.error);
+            }
+          }
+          if (contentData.static_post) {
+            const updatedStaticPosts = [
+              contentData.static_post,
+              ...staticPosts.filter((s) => s.paper_id !== newPaper.paper_id),
+            ];
+            setStaticPosts(updatedStaticPosts);
+            saveStaticPosts(updatedStaticPosts);
+            if (idToken) {
+              saveDeliverableToSql(idToken, newPaper.paper_id, 'STATIC', contentData.static_post.id, contentData.static_post).catch(console.error);
+            }
+          }
+          if (contentData.reel) {
+            const updatedReels = [
+              contentData.reel,
+              ...reels.filter((r) => r.paper_id !== newPaper.paper_id),
+            ];
+            setReels(updatedReels);
+            saveReels(updatedReels);
+            if (idToken) {
+              saveDeliverableToSql(idToken, newPaper.paper_id, 'REEL', contentData.reel.id, contentData.reel).catch(console.error);
+            }
+          }
+        }
+      }
+    } catch (autoErr) {
+      console.warn('Auto-generation pipeline notice:', autoErr);
+    }
   };
 
   const handleUpdatePaper = (updatedPaper: PaperRecord) => {
