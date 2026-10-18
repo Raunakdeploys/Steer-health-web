@@ -187,6 +187,8 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
     }
   };
 
+  const [justApprovedId, setJustApprovedId] = useState<string | null>(null);
+
   // Review Actions with audit trail
   const handleApprove = (claim: ClaimRecord) => {
     const hasBlockers = claim.validation_findings?.some((f) => f.severity === 'BLOCKER');
@@ -217,6 +219,11 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
       review_history: [historyEntry, ...(claim.review_history || [])],
       updated_at: now,
     };
+
+    setJustApprovedId(claim.claim_id);
+    setTimeout(() => {
+      setJustApprovedId(null);
+    }, 2500);
 
     onUpdateClaim(updated, false);
   };
@@ -665,7 +672,12 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
                     EDITORIAL DECISION ACTION
                   </span>
 
-                  {activeClaim.review_status !== 'HUMAN_APPROVED' && (
+                  {justApprovedId === activeClaim.claim_id ? (
+                    <div className="w-full py-2.5 px-3 bg-[#416C49] text-white text-xs font-semibold rounded-xs flex items-center justify-center gap-2 animate-in fade-in zoom-in-95 duration-300 shadow-sm">
+                      <CheckCircle2 className="w-4 h-4 animate-bounce text-white" />
+                      <span>Approved & Signed Off Successfully!</span>
+                    </div>
+                  ) : activeClaim.review_status !== 'HUMAN_APPROVED' ? (
                     <button
                       onClick={() => handleApprove(activeClaim)}
                       className="w-full py-2 px-3 text-xs font-semibold bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
@@ -673,7 +685,7 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       <span>Approve Claim for Content Studio</span>
                     </button>
-                  )}
+                  ) : null}
 
                   <button
                     onClick={() => handleAuditSingleClaimViaGemini(activeClaim)}
