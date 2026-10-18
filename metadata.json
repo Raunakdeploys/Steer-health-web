@@ -1,0 +1,8 @@
+{
+  "name": "Remix Evidence Studio",
+  "description": "Transform scientific papers into evidence-backed social content with verified source traceability and professional editorial design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
