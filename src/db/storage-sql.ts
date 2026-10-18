@@ -17,7 +17,7 @@ export async function getUserPapers(userId: string): Promise<PaperRecord[]> {
   if (!isSqlConfigured) return ALL_PAPERS;
   try {
     const rows = await db.select().from(papers).where(eq(papers.userId, userId)).orderBy(desc(papers.createdAt));
-    return rows.length > 0 ? rows.map((r) => ({
+    return rows.length > 0 ? (rows as any[]).map((r: any) => ({
       paper_id: r.id,
       title: r.title,
       journal: r.journal || 'General Clinical Medicine',
@@ -84,7 +84,7 @@ export async function getUserPassages(userId: string, paperId?: string): Promise
   try {
     const condition = paperId ? and(eq(evidencePassages.userId, userId), eq(evidencePassages.paperId, paperId)) : eq(evidencePassages.userId, userId);
     const rows = await db.select().from(evidencePassages).where(condition);
-    return rows.length > 0 ? rows.map((r) => ({
+    return rows.length > 0 ? (rows as any[]).map((r: any) => ({
       evidence_id: r.id,
       paper_id: r.paperId,
       pdf_page_index: r.pdfPageIndex,
@@ -132,7 +132,7 @@ export async function getUserClaims(userId: string, paperId?: string): Promise<C
   try {
     const condition = paperId ? and(eq(claims.userId, userId), eq(claims.paperId, paperId)) : eq(claims.userId, userId);
     const rows = await db.select().from(claims).where(condition);
-    return rows.length > 0 ? rows.map((r) => ({
+    return rows.length > 0 ? (rows as any[]).map((r: any) => ({
       claim_id: r.id,
       paper_id: r.paperId,
       claim_text: r.claimText,

@@ -545,7 +545,7 @@ export function runValidationEngine(
   // Rule 11: Safety, Marketing & Prohibited Health Promises
   // =========================================================================
   const safetyRegex =
-    /\b(miracle(\s+(cure|pill|remedy|drug|supplement))?|melt(s|ing)?\s+fat|shed\s+\d+\s*(lbs|pounds|kg)|guaranteed\s+(weight\s+loss|results?|cure)|cures?\s+(all\s+)?(obesity|cancer|diabetes|disease)|ozempic\s+without\s+prescription|anabolic\s+steroid|buy\s+now|secret\s+(pill|cure|trick|formula))\b/i;
+    /\b(miracle cure|melt fat|shed \d+\s*(lbs|pounds|kg)|guaranteed weight loss|cures cancer|ozempic without prescription|anabolic steroid|buy now|doctor secret trick)\b/i;
   if (safetyRegex.test(claim.claim_text) || safetyRegex.test(claim.exact_supporting_quote)) {
     recordCheck(
       'RULE_11_SAFETY_POLICY',
