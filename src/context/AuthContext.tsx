@@ -21,7 +21,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   signInWithEmail: (email: string, name?: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<{ success: boolean; requiresChooser?: boolean }>;
   signInAsReviewer: (email?: string, name?: string) => Promise<void>;
   signOutUser: () => Promise<void>;
   getIdTokenFresh: () => Promise<string | null>;
@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   error: null,
   signInWithEmail: async () => {},
-  signInWithGoogle: async () => {},
+  signInWithGoogle: async () => ({ success: false }),
   signInAsReviewer: async () => {},
   signOutUser: async () => {},
   getIdTokenFresh: async () => null,
@@ -156,10 +156,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Firebase Google Sign-In with safe fallbacks.
-   * Never opens raw OAuth popups to unauthorized domains that trigger Error 400: origin_mismatch.
+   * Firebase Google Sign-In with graceful fallback.
+   * If popup fails due to domain restrictions on hosting platforms,
+   * returns requiresChooser: true so the user is guided to account selection smoothly.
    */
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<{ success: boolean; requiresChooser?: boolean }> => {
     setError(null);
     try {
       const result = await signInWithPopup(auth, googleAuthProvider);
@@ -175,15 +176,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIdToken(token);
       localStorage.setItem('steer_auth_user', JSON.stringify(appUser));
       localStorage.setItem('steer_auth_token', token);
+      return { success: true };
     } catch (err: any) {
-      console.warn('Google sign-in popup encountered error:', err?.code, err?.message);
-      if (err?.code === 'auth/unauthorized-domain' || err?.code === 'auth/configuration-not-found') {
-        setError('Google popup authorization is restricted on this domain. Please use the direct Email Sign-In below to sign in instantly.');
-      } else if (err?.code === 'auth/popup-blocked') {
-        setError('Popup was blocked by your browser. Please enter your email below to sign in directly.');
-      } else if (err?.code !== 'auth/popup-closed-by-user') {
-        setError('Google sign-in could not be completed. Please enter your email below for immediate access.');
-      }
+      console.warn('Google popup encountered:', err?.code, err?.message);
+      return { success: false, requiresChooser: true };
     }
   };
 
