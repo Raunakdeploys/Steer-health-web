@@ -404,6 +404,21 @@ export default function App() {
     }
   };
 
+  const handleBatchUpdateClaims = (updatedBatch: ClaimRecord[]) => {
+    const updatedMap = new Map(updatedBatch.map((c) => [c.claim_id, c]));
+    const updated = claims.map((c) => updatedMap.get(c.claim_id) || c);
+    setClaims(updated);
+    saveClaims(updated);
+
+    if (idToken) {
+      for (const c of updatedBatch) {
+        saveClaimToSql(idToken, c).catch((err) =>
+          console.error('Failed to update claim in Cloud SQL:', err)
+        );
+      }
+    }
+  };
+
   const handleGenerateAllContent = async () => {
     if (!activePaper) return;
     if (approvedClaims.length === 0) {
@@ -705,6 +720,7 @@ export default function App() {
                 onAddClaim={handleAddClaim}
                 onDeleteClaim={handleDeleteClaim}
                 onBatchAddClaims={handleBatchAddClaims}
+                onBatchUpdateClaims={handleBatchUpdateClaims}
                 onViewSourcePassage={handleViewSourcePassage}
                 onNavigateToStudio={() => setCurrentTab('studio')}
               />

@@ -32,6 +32,7 @@ interface ClaimLedgerProps {
   onAddClaim: (claim: ClaimRecord) => void;
   onDeleteClaim: (claimId: string) => void;
   onBatchAddClaims: (claims: ClaimRecord[]) => void;
+  onBatchUpdateClaims?: (claims: ClaimRecord[]) => void;
   onViewSourcePassage: (evidenceId: string) => void;
   onNavigateToStudio: () => void;
   selectedClaimId?: string | null;
@@ -46,6 +47,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   onAddClaim,
   onDeleteClaim,
   onBatchAddClaims,
+  onBatchUpdateClaims,
   onViewSourcePassage,
   onNavigateToStudio,
   selectedClaimId: externalSelectedClaimId,
@@ -55,6 +57,8 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isGeneratingAiClaims, setIsGeneratingAiClaims] = useState(false);
+  const [isAuditingClaims, setIsAuditingClaims] = useState(false);
+  const [auditSummary, setAuditSummary] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
   // Edit claim modal state
@@ -167,6 +171,88 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
       setAiError(err.message || 'Error communicating with claim extraction model.');
     } finally {
       setIsGeneratingAiClaims(false);
+    }
+  };
+
+  // Automated Claim Audit via Gemini 3.8 Flash Clinical Engine
+  const handleAutoAuditClaimsViaGemini = async () => {
+    if (paperClaims.length === 0) {
+      alert('No claims found for this paper to audit.');
+      return;
+    }
+
+    setIsAuditingClaims(true);
+    setAiError(null);
+    setAuditSummary(null);
+
+    try {
+      const response = await fetch('/api/audit-claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paper_title: activePaper.title,
+          claims: paperClaims,
+          passages: paperPassages,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to auto-audit claims.');
+      }
+
+      if (data.audited_claims && Array.isArray(data.audited_claims)) {
+        if (onBatchUpdateClaims) {
+          onBatchUpdateClaims(data.audited_claims);
+        } else {
+          data.audited_claims.forEach((c: ClaimRecord) => onUpdateClaim(c, false));
+        }
+
+        const approved = data.audited_claims.filter(
+          (c: any) => c.review_status === 'HUMAN_APPROVED'
+        ).length;
+        const flagged = data.audited_claims.filter(
+          (c: any) => c.review_status === 'FLAGGED_CONCERN' || c.review_status === 'FLAGGED'
+        ).length;
+        setAuditSummary(
+          `Gemini 3.8 Flash Clinical Audit Complete: ${approved} claim(s) doctor-approved, ${flagged} claim(s) flagged for editorial review.`
+        );
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err.message || 'Auto-audit communication error with Gemini 3.8 Flash.');
+    } finally {
+      setIsAuditingClaims(false);
+    }
+  };
+
+  const handleAuditSingleClaimViaGemini = async (claim: ClaimRecord) => {
+    setIsAuditingClaims(true);
+    setAiError(null);
+    try {
+      const response = await fetch('/api/audit-claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paper_title: activePaper.title,
+          claims: [claim],
+          passages: paperPassages,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to audit claim.');
+      }
+
+      if (data.audited_claims && data.audited_claims[0]) {
+        onUpdateClaim(data.audited_claims[0], false);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err.message || 'Failed to audit single claim.');
+    } finally {
+      setIsAuditingClaims(false);
     }
   };
 
@@ -318,6 +404,20 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
             <span>{isGeneratingAiClaims ? 'Extracting...' : 'Extract Claims (AI Draft)'}</span>
           </button>
 
+          <button
+            onClick={handleAutoAuditClaimsViaGemini}
+            disabled={isAuditingClaims || paperClaims.length === 0}
+            className="px-3.5 py-1.5 bg-[#661414] hover:bg-[#4a0d0d] disabled:opacity-50 text-[#F5EBDF] rounded-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+            title="Cross-reference all claims against source passages with Gemini 3.8 Flash and auto-approve verified claims"
+          >
+            {isAuditingClaims ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C04E2A]" />
+            ) : (
+              <ShieldCheck className="w-3.5 h-3.5 text-[#C04E2A]" />
+            )}
+            <span>{isAuditingClaims ? 'Auditing with Gemini...' : 'Auto-Audit All (Gemini 3.8 Flash)'}</span>
+          </button>
+
           {approvedCount > 0 && (
             <button
               onClick={onNavigateToStudio}
@@ -329,6 +429,21 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
           )}
         </div>
       </div>
+
+      {auditSummary && (
+        <div className="p-3 bg-[#416C49]/10 border border-[#416C49]/30 text-[#416C49] text-xs flex items-center justify-between gap-2 rounded-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#416C49]" />
+            <span>{auditSummary}</span>
+          </div>
+          <button
+            onClick={() => setAuditSummary(null)}
+            className="text-[10px] font-mono hover:text-[#351D1D] cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {aiError && (
         <div className="p-3 bg-[#74191D]/10 border border-[#74191D]/30 text-[#74191D] text-xs">
@@ -602,6 +717,20 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                       <span>Reject</span>
                     </button>
                   </div>
+
+                  <button
+                    onClick={() => handleAuditSingleClaimViaGemini(activeClaim)}
+                    disabled={isAuditingClaims}
+                    className="w-full py-2 px-3 text-xs font-semibold bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#661414] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    title="Audit this individual claim with Gemini 3.8 Flash against verbatim source passages"
+                  >
+                    {isAuditingClaims ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C04E2A]" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-[#C04E2A]" />
+                    )}
+                    <span>Audit This Claim (Gemini 3.8 Flash)</span>
+                  </button>
                 </div>
               </div>
             </>
