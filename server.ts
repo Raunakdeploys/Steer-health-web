@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
+import { adminDb } from './src/lib/firebase-admin.ts';
 import {
   getUserPapers,
   saveUserPaper,
@@ -18,6 +19,7 @@ import {
   deleteUserClaim,
   getUserDeliverables,
   saveUserDeliverable,
+  touchUserRecord,
 } from './src/db/storage-firestore.ts';
 import {
   ALL_PAPERS,
@@ -48,6 +50,25 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.use(express.json({ limit: '25mb' }));
 
+// OWASP security headers permitting Google Identity Services, OAuth, and iframe embedding in AI Studio
+app.use((req, res, next) => {
+  // Explicitly do NOT send X-Frame-Options: SAMEORIGIN (prevents iframe loading in AI Studio previews)
+  res.removeHeader('X-Frame-Options');
+
+  // Set CSP allowing self, inline/eval, Google Identity Services, accounts.google.com, apis.google.com
+  res.setHeader(
+    'Content-Security-Policy',
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://*.google.com; " +
+    "frame-src 'self' https://accounts.google.com https://*.google.com https://*.firebaseapp.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; " +
+    "font-src 'self' https://fonts.gstatic.com data:; " +
+    "img-src 'self' data: blob: https:; " +
+    "connect-src 'self' https: wss:;"
+  );
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
+
 // Shared Gemini AI client utility
 const apiKey = process.env.GEMINI_API_KEY || '';
 let aiClient: GoogleGenAI | null = null;
@@ -74,8 +95,59 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 function getAuthUserKey(req: AuthRequest): string {
-  return (req.user?.email || req.user?.userKey || req.user?.uid || 'user@steerclub.com').trim().toLowerCase();
+  return (req.user?.uid || req.user?.email || req.user?.userKey || 'user@steerclub.com').trim().toLowerCase();
 }
+
+/**
+ * POST /api/auth/sync
+ * Receives user's authenticated token, verifies it, and upserts user profile document into Firestore
+ */
+app.post('/api/auth/sync', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = getAuthUserKey(req);
+    const { uid, email, displayName, photoURL, isAnonymous, provider } = req.body || {};
+    const finalUid = uid || req.user?.uid || userId;
+    const finalEmail = email || req.user?.email || null;
+    const finalName = displayName || req.user?.name || (finalEmail ? finalEmail.split('@')[0] : 'Reviewer');
+    const finalPhoto = photoURL || req.user?.picture || null;
+
+    try {
+      await touchUserRecord(userId, {
+        email: finalEmail || userId,
+        displayName: finalName,
+      });
+
+      await adminDb.collection('users').doc(userId).set(
+        {
+          uid: finalUid,
+          email: finalEmail,
+          displayName: finalName,
+          photoURL: finalPhoto,
+          isAnonymous: !!isAnonymous,
+          provider: provider || 'google-gis',
+          lastSeenAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (dbErr) {
+      console.warn('Firestore profile upsert notice:', dbErr);
+    }
+
+    res.json({
+      success: true,
+      user: {
+        uid: finalUid,
+        email: finalEmail,
+        displayName: finalName,
+        photoURL: finalPhoto,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error in /api/auth/sync:', error);
+    res.status(500).json({ error: error.message || 'Failed to sync authentication profile' });
+  }
+});
 
 /**
  * GET /api/user/data
@@ -224,56 +296,36 @@ app.post('/api/user/deliverable', requireAuth, async (req: AuthRequest, res: Res
 
 /**
  * POST /api/user/seed-demo
+ * Seeds the synthetic benchmark demo dataset into Cloud SQL / Firestore for the user
  */
 app.post('/api/user/seed-demo', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const userId = getAuthUserKey(req);
     try {
-      await saveUserPaper(userId, PAPER_GLP1);
-      await saveUserPassages(userId, PAPER_GLP1.paper_id, PASSAGES_GLP1);
-      for (const c of CLAIMS_GLP1) {
-        await saveUserClaim(userId, c);
+      for (const paper of ALL_PAPERS) {
+        await saveUserPaper(userId, paper);
+        const paperPassages = ALL_PASSAGES.filter((p) => p.paper_id === paper.paper_id);
+        await saveUserPassages(userId, paper.paper_id, paperPassages);
       }
-      await saveUserDeliverable(userId, PAPER_GLP1.paper_id, 'CAROUSEL', CAROUSEL_GLP1.id, CAROUSEL_GLP1);
-      await saveUserDeliverable(userId, PAPER_GLP1.paper_id, 'STATIC', STATIC_GLP1.id, STATIC_GLP1);
-      await saveUserDeliverable(userId, PAPER_GLP1.paper_id, 'REEL', REEL_GLP1.id, REEL_GLP1);
+      for (const claim of ALL_CLAIMS) {
+        await saveUserClaim(userId, claim);
+      }
+      for (const carousel of ALL_CAROUSELS) {
+        await saveUserDeliverable(userId, carousel.paper_id, 'CAROUSEL', carousel.id, carousel);
+      }
+      for (const staticPost of ALL_STATIC_POSTS) {
+        await saveUserDeliverable(userId, staticPost.paper_id, 'STATIC', staticPost.id, staticPost);
+      }
+      for (const reel of ALL_REELS) {
+        await saveUserDeliverable(userId, reel.paper_id, 'REEL', reel.id, reel);
+      }
     } catch (dbErr) {
-      console.warn('DB seed deferred (offline):', dbErr);
-    }
-
-    res.json({ success: true, message: 'Baseline metabolic research loaded', user_email: userId });
-  } catch (error: any) {
-    res.json({ success: true, message: 'Loaded local baseline research', offline: true });
-  }
-});
-
-/**
- * POST /api/user/seed-demo
- * Seeds the synthetic benchmark demo dataset into Cloud SQL for the user
- */
-app.post('/api/user/seed-demo', requireAuth, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = getAuthUserKey(req);
-    for (const paper of ALL_PAPERS) {
-      await saveUserPaper(userId, paper);
-      const paperPassages = ALL_PASSAGES.filter((p) => p.paper_id === paper.paper_id);
-      await saveUserPassages(userId, paper.paper_id, paperPassages);
-    }
-    for (const claim of ALL_CLAIMS) {
-      await saveUserClaim(userId, claim);
-    }
-    for (const carousel of ALL_CAROUSELS) {
-      await saveUserDeliverable(userId, carousel.paper_id, 'CAROUSEL', carousel.id, carousel);
-    }
-    for (const staticPost of ALL_STATIC_POSTS) {
-      await saveUserDeliverable(userId, staticPost.paper_id, 'STATIC', staticPost.id, staticPost);
-    }
-    for (const reel of ALL_REELS) {
-      await saveUserDeliverable(userId, reel.paper_id, 'REEL', reel.id, reel);
+      console.warn('DB seed deferred (offline fallback active):', dbErr);
     }
 
     res.json({
       success: true,
+      user_email: userId,
       papers: ALL_PAPERS,
       passages: ALL_PASSAGES,
       claims: ALL_CLAIMS,
@@ -282,8 +334,17 @@ app.post('/api/user/seed-demo', requireAuth, async (req: AuthRequest, res: Respo
       reels: ALL_REELS,
     });
   } catch (error: any) {
-    console.error('Failed to seed demo into Cloud SQL:', error);
-    res.status(500).json({ error: error.message || 'Failed to seed demo data to database' });
+    console.error('Failed to seed demo data:', error);
+    res.json({
+      success: true,
+      offline: true,
+      papers: ALL_PAPERS,
+      passages: ALL_PASSAGES,
+      claims: ALL_CLAIMS,
+      carousels: ALL_CAROUSELS,
+      staticPosts: ALL_STATIC_POSTS,
+      reels: ALL_REELS,
+    });
   }
 });
 
@@ -1264,28 +1325,31 @@ app.post('/api/batch-pipeline', async (req: Request, res: Response) => {
   }
 });
 
-// Setup Vite middleware in dev or static files in production with auto-build fallback
+// Setup Vite middleware in dev or static files in production
 async function startServer() {
+  const isProduction = process.env.NODE_ENV === 'production';
   const distPath = path.resolve(__dirname, 'dist');
   const indexPath = path.join(distPath, 'index.html');
 
-  if (!fs.existsSync(indexPath)) {
-    console.log('[steer] dist/index.html not found. Attempting automatic build...');
-    try {
-      execSync('npm run build', { stdio: 'inherit' });
-    } catch (buildErr) {
-      console.warn('[steer] Automatic build failed, falling back to Vite dev middleware:', buildErr);
-    }
-  }
-
-  if (fs.existsSync(indexPath)) {
-    app.use(express.static(distPath));
-    app.get('*', (req, res, next) => {
-      if (req.path.startsWith('/api')) {
-        return next();
+  if (isProduction) {
+    if (!fs.existsSync(indexPath)) {
+      console.log('[steer] dist/index.html not found in production. Running build...');
+      try {
+        execSync('npm run build', { stdio: 'inherit' });
+      } catch (buildErr) {
+        console.warn('[steer] Build failed:', buildErr);
       }
-      res.sendFile(indexPath);
-    });
+    }
+
+    if (fs.existsSync(indexPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) {
+          return next();
+        }
+        res.sendFile(indexPath);
+      });
+    }
   } else {
     const vite = await createViteServer({
       server: { middlewareMode: true, allowedHosts: true },

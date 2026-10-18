@@ -62,7 +62,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
   onCloseMobile,
   onOpenAuthModal,
 }) => {
-  const { user, signInWithGoogle, signInAsReviewer, signOutUser, loading: authLoading } = useAuth();
+  const { user, signOutUser, loading: authLoading } = useAuth();
 
   // Core 5 Stages for Problem Statement 2
   const coreSections: {
@@ -349,7 +349,6 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
           <button
             onClick={() => {
               if (onOpenAuthModal) onOpenAuthModal();
-              else signInWithGoogle();
             }}
             className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] rounded-xs text-[11px] font-medium text-[#351D1D] cursor-pointer transition-colors shadow-xs"
           >

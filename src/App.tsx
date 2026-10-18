@@ -40,6 +40,7 @@ import {
 } from './utils/sqlApiClient';
 import { NavigationSidebar, ActiveTab } from './components/NavigationSidebar';
 import { TopBar } from './components/TopBar';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { ContextInspector } from './components/ContextInspector';
 import { Workspace } from './components/Workspace';
 import { InvestigationDesk } from './components/InvestigationDesk';
@@ -103,65 +104,60 @@ export default function App() {
     }
   }, []);
 
-  // Sync with Cloud SQL PostgreSQL when user is authenticated with Google
+  const performSqlSync = React.useCallback(async (token: string) => {
+    setSqlSyncStatus('syncing');
+    try {
+      const data = await fetchUserDataFromSql(token);
+      if (data.papers.length > 0) {
+        setPapers(data.papers);
+        setPassages(data.passages);
+        setClaims(data.claims);
+        setCarousels(data.carousels);
+        setStaticPosts(data.staticPosts);
+        setReels(data.reels);
+        setActivePaperIdState(data.papers[0].paper_id);
+        savePapers(data.papers);
+        savePassages(data.passages);
+        saveClaims(data.claims);
+        saveCarousels(data.carousels);
+        saveStaticPosts(data.staticPosts);
+        saveReels(data.reels);
+        if (data.claims.length > 0) {
+          setSelectedClaimId(data.claims[0].claim_id);
+        }
+        setSqlSyncStatus('synced');
+      } else {
+        const localPapers = getSavedPapers();
+        if (localPapers.length > 0) {
+          const localPassages = getSavedPassages();
+          const localClaims = getSavedClaims();
+          for (const p of localPapers) {
+            await savePaperToSql(
+              token,
+              p,
+              localPassages.filter((pass) => pass.paper_id === p.paper_id)
+            );
+          }
+          for (const c of localClaims) {
+            await saveClaimToSql(token, c);
+          }
+        }
+        setSqlSyncStatus('synced');
+      }
+    } catch (err) {
+      console.warn('Cloud SQL / Firestore sync warning:', err);
+      setSqlSyncStatus('error');
+    }
+  }, []);
+
+  // Sync with Cloud SQL / Firestore when user is authenticated with Google or email
   useEffect(() => {
     if (!idToken) {
       setSqlSyncStatus('offline');
       return;
     }
-
-    let isMounted = true;
-    setSqlSyncStatus('syncing');
-
-    fetchUserDataFromSql(idToken)
-      .then(async (data) => {
-        if (!isMounted) return;
-        if (data.papers.length > 0) {
-          setPapers(data.papers);
-          setPassages(data.passages);
-          setClaims(data.claims);
-          setCarousels(data.carousels);
-          setStaticPosts(data.staticPosts);
-          setReels(data.reels);
-          setActivePaperIdState(data.papers[0].paper_id);
-          savePapers(data.papers);
-          savePassages(data.passages);
-          saveClaims(data.claims);
-          saveCarousels(data.carousels);
-          saveStaticPosts(data.staticPosts);
-          saveReels(data.reels);
-          if (data.claims.length > 0) {
-            setSelectedClaimId(data.claims[0].claim_id);
-          }
-          setSqlSyncStatus('synced');
-        } else {
-          const localPapers = getSavedPapers();
-          if (localPapers.length > 0) {
-            const localPassages = getSavedPassages();
-            const localClaims = getSavedClaims();
-            for (const p of localPapers) {
-              await savePaperToSql(
-                idToken,
-                p,
-                localPassages.filter((pass) => pass.paper_id === p.paper_id)
-              );
-            }
-            for (const c of localClaims) {
-              await saveClaimToSql(idToken, c);
-            }
-          }
-          setSqlSyncStatus('synced');
-        }
-      })
-      .catch((err) => {
-        console.error('Cloud SQL sync error:', err);
-        if (isMounted) setSqlSyncStatus('error');
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [idToken]);
+    performSqlSync(idToken);
+  }, [idToken, performSqlSync]);
 
   const activePaper = papers.find((p) => p.paper_id === activePaperId) || papers[0] || null;
 
@@ -596,6 +592,32 @@ export default function App() {
         <div className="flex-1 flex overflow-hidden">
           {/* CENTER: The Dominant Working Canvas */}
           <main className="flex-1 min-w-0 overflow-y-auto pb-16">
+            {/* Async Sync Status Banner with Retry & Loading States */}
+            {sqlSyncStatus === 'error' && (
+              <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between text-xs text-red-800">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>Database sync disconnected. Active local offline workspace preserved.</span>
+                </div>
+                {idToken && (
+                  <button
+                    onClick={() => performSqlSync(idToken)}
+                    className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-900 rounded-md font-semibold flex items-center gap-1 transition-colors cursor-pointer text-[11px]"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Retry Sync</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            {sqlSyncStatus === 'syncing' && (
+              <div className="mx-6 mt-4 p-2.5 bg-amber-50/80 border border-amber-200 rounded-lg flex items-center gap-2 text-xs text-amber-800 animate-pulse">
+                <RefreshCw className="w-3.5 h-3.5 text-amber-600 animate-spin" />
+                <span>Synchronizing clinical research records with per-user Firestore isolation...</span>
+              </div>
+            )}
+
             {currentTab === 'workspace' && (
               <Workspace
                 papers={papers}
