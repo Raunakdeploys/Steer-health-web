@@ -73,13 +73,17 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+function getAuthUserKey(req: AuthRequest): string {
+  return (req.user?.email || req.user?.userKey || req.user?.uid || 'user@steerclub.com').trim().toLowerCase();
+}
+
 /**
  * GET /api/user/data
- * Fetches all papers, passages, claims, and deliverables from Cloud SQL for the authenticated user
+ * Fetches all papers, passages, claims, and deliverables for the authenticated user (keyed by email)
  */
 app.get('/api/user/data', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     const userPapers = await getUserPapers(userId);
     const userPassages = await getUserPassages(userId);
     const userClaims = await getUserClaims(userId);
@@ -92,9 +96,10 @@ app.get('/api/user/data', requireAuth, async (req: AuthRequest, res: Response) =
       carousels,
       staticPosts,
       reels,
+      user_email: userId,
     });
   } catch (error: any) {
-    console.warn('Cloud SQL offline or error, serving stored baseline data:', error?.message);
+    console.warn('Database offline or error, serving stored baseline data:', error?.message);
     res.json({
       papers: ALL_PAPERS,
       passages: ALL_PASSAGES,
@@ -102,17 +107,18 @@ app.get('/api/user/data', requireAuth, async (req: AuthRequest, res: Response) =
       carousels: ALL_CAROUSELS,
       staticPosts: ALL_STATIC_POSTS,
       reels: ALL_REELS,
+      user_email: getAuthUserKey(req),
     });
   }
 });
 
 /**
  * POST /api/user/paper
- * Saves or updates a paper and its extracted passages in Cloud SQL
+ * Saves or updates a paper and its extracted passages in Firestore & Cloud SQL by email
  */
 app.post('/api/user/paper', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     const { paper, passages } = req.body;
     if (!paper || !paper.paper_id) {
       return res.status(400).json({ error: 'Missing paper data or paper_id' });
@@ -124,10 +130,10 @@ app.post('/api/user/paper', requireAuth, async (req: AuthRequest, res: Response)
         await saveUserPassages(userId, paper.paper_id, passages);
       }
     } catch (dbErr) {
-      console.warn('Could not persist paper to SQL (offline):', dbErr);
+      console.warn('Could not persist paper to database:', dbErr);
     }
 
-    res.json({ success: true, paper_id: paper.paper_id });
+    res.json({ success: true, paper_id: paper.paper_id, user_email: userId });
   } catch (error: any) {
     console.warn('Failed to save paper to database:', error);
     res.json({ success: true, paper_id: req.body?.paper?.paper_id, offline: true });
@@ -139,14 +145,14 @@ app.post('/api/user/paper', requireAuth, async (req: AuthRequest, res: Response)
  */
 app.delete('/api/user/paper/:paperId', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     const { paperId } = req.params;
     try {
       await deleteUserPaper(userId, paperId);
     } catch (dbErr) {
-      console.warn('Could not delete paper from SQL (offline):', dbErr);
+      console.warn('Could not delete paper from database:', dbErr);
     }
-    res.json({ success: true, deletedPaperId: paperId });
+    res.json({ success: true, deletedPaperId: paperId, user_email: userId });
   } catch (error: any) {
     res.json({ success: true, deletedPaperId: req.params.paperId, offline: true });
   }
@@ -154,11 +160,11 @@ app.delete('/api/user/paper/:paperId', requireAuth, async (req: AuthRequest, res
 
 /**
  * POST /api/user/claim
- * Saves or updates a claim record in Cloud SQL
+ * Saves or updates a claim record in database by email
  */
 app.post('/api/user/claim', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     const { claim } = req.body;
     if (!claim || !claim.claim_id || !claim.paper_id) {
       return res.status(400).json({ error: 'Missing claim data, claim_id, or paper_id' });
@@ -167,9 +173,9 @@ app.post('/api/user/claim', requireAuth, async (req: AuthRequest, res: Response)
     try {
       await saveUserClaim(userId, claim);
     } catch (dbErr) {
-      console.warn('Could not persist claim to SQL (offline):', dbErr);
+      console.warn('Could not persist claim to database:', dbErr);
     }
-    res.json({ success: true, claim_id: claim.claim_id });
+    res.json({ success: true, claim_id: claim.claim_id, user_email: userId });
   } catch (error: any) {
     res.json({ success: true, claim_id: req.body?.claim?.claim_id, offline: true });
   }
@@ -180,14 +186,14 @@ app.post('/api/user/claim', requireAuth, async (req: AuthRequest, res: Response)
  */
 app.delete('/api/user/claim/:claimId', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     const { claimId } = req.params;
     try {
       await deleteUserClaim(userId, claimId);
     } catch (dbErr) {
-      console.warn('Could not delete claim from SQL (offline):', dbErr);
+      console.warn('Could not delete claim from database:', dbErr);
     }
-    res.json({ success: true, deletedClaimId: claimId });
+    res.json({ success: true, deletedClaimId: claimId, user_email: userId });
   } catch (error: any) {
     res.json({ success: true, deletedClaimId: req.params.claimId, offline: true });
   }
@@ -195,11 +201,11 @@ app.delete('/api/user/claim/:claimId', requireAuth, async (req: AuthRequest, res
 
 /**
  * POST /api/user/deliverable
- * Saves carousel, static post, or vertical reel deliverable to Cloud SQL
+ * Saves carousel, static post, or vertical reel deliverable by user email
  */
 app.post('/api/user/deliverable', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     const { paperId, deliverableType, id, payload } = req.body;
     if (!paperId || !deliverableType || !id || !payload) {
       return res.status(400).json({ error: 'Missing required deliverable fields' });
@@ -208,9 +214,9 @@ app.post('/api/user/deliverable', requireAuth, async (req: AuthRequest, res: Res
     try {
       await saveUserDeliverable(userId, paperId, deliverableType, id, payload);
     } catch (dbErr) {
-      console.warn('Could not persist deliverable to SQL (offline):', dbErr);
+      console.warn('Could not persist deliverable to database:', dbErr);
     }
-    res.json({ success: true });
+    res.json({ success: true, user_email: userId });
   } catch (error: any) {
     res.json({ success: true, offline: true });
   }
@@ -221,7 +227,7 @@ app.post('/api/user/deliverable', requireAuth, async (req: AuthRequest, res: Res
  */
 app.post('/api/user/seed-demo', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     try {
       await saveUserPaper(userId, PAPER_GLP1);
       await saveUserPassages(userId, PAPER_GLP1.paper_id, PASSAGES_GLP1);
@@ -232,10 +238,10 @@ app.post('/api/user/seed-demo', requireAuth, async (req: AuthRequest, res: Respo
       await saveUserDeliverable(userId, PAPER_GLP1.paper_id, 'STATIC', STATIC_GLP1.id, STATIC_GLP1);
       await saveUserDeliverable(userId, PAPER_GLP1.paper_id, 'REEL', REEL_GLP1.id, REEL_GLP1);
     } catch (dbErr) {
-      console.warn('SQL seed deferred (offline):', dbErr);
+      console.warn('DB seed deferred (offline):', dbErr);
     }
 
-    res.json({ success: true, message: 'Baseline metabolic research loaded' });
+    res.json({ success: true, message: 'Baseline metabolic research loaded', user_email: userId });
   } catch (error: any) {
     res.json({ success: true, message: 'Loaded local baseline research', offline: true });
   }
@@ -247,7 +253,7 @@ app.post('/api/user/seed-demo', requireAuth, async (req: AuthRequest, res: Respo
  */
 app.post('/api/user/seed-demo', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.uid;
+    const userId = getAuthUserKey(req);
     for (const paper of ALL_PAPERS) {
       await saveUserPaper(userId, paper);
       const paperPassages = ALL_PASSAGES.filter((p) => p.paper_id === paper.paper_id);

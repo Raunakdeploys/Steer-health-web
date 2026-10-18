@@ -54,6 +54,9 @@ export const requireAuth = async (
       }
     }
 
+    const userEmail = (decodedToken.email || decodedToken.uid || 'user@steerclub.com').trim().toLowerCase();
+    decodedToken.email = userEmail;
+    decodedToken.userKey = userEmail;
     req.user = decodedToken;
 
     // Safely sync user profile without blocking or crashing the request if DB is offline
