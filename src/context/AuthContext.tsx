@@ -12,7 +12,7 @@ import {
 } from '../lib/firebase';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { parseJwtPayload } from '../lib/gisAuth';
-import firebaseConfig from '../../firebase-applet-config.json';
+import { firebaseConfig } from '../lib/firebase-config.ts';
 
 export interface AppUser {
   uid: string;

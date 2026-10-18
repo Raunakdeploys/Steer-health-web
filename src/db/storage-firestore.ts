@@ -1,5 +1,5 @@
 import { adminDb } from '../lib/firebase-admin.ts';
-import { PaperRecord, EvidencePassage, ClaimRecord } from '../types/index.ts';
+import type { PaperRecord, EvidencePassage, ClaimRecord } from '../types/index.ts';
 
 const usersCollection = adminDb.collection('users');
 

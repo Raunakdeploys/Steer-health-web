@@ -1,4 +1,4 @@
-import {
+import type {
   CarouselContent,
   ClaimRecord,
   EvidencePassage,
@@ -6,8 +6,8 @@ import {
   ReelContent,
   ScheduledPost,
   StaticPostContent,
-} from '../types';
-import { runValidationEngine } from './validationEngine';
+} from '../types/index.ts';
+import { runValidationEngine } from './validationEngine.ts';
 
 const STORAGE_KEYS = {
   PAPERS: 'steer_evidence_studio_papers_v2',

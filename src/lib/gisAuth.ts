@@ -1,4 +1,4 @@
-import firebaseConfig from '../../firebase-applet-config.json';
+import { firebaseConfig } from './firebase-config.ts';
 
 declare global {
   interface Window {

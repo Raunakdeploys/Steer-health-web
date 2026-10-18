@@ -1,10 +1,10 @@
-import {
+import type {
   ClaimRecord,
   EvidencePassage,
   ValidationFinding,
   ValidationCheckResult,
   ValidationOutcome,
-} from '../types';
+} from '../types/index.ts';
 
 export interface ValidationEngineResult {
   findings: ValidationFinding[];
