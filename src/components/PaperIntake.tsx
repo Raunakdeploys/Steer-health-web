@@ -144,17 +144,154 @@ export const PaperIntake: React.FC<PaperIntakeProps> = ({
 
   return (
     <div className="max-w-[1360px] mx-auto p-4 sm:p-6 md:p-8 space-y-8">
-      {/* 01. Compact Document Intake Strip (No giant puffy cards) */}
+      {/* 00. Landmark Research Studies for Hackathon PS2 */}
+      <section className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-[#661414] text-[#F5EBDF] text-[10px] font-mono font-bold uppercase rounded-xs">
+                STAGE 01: INGESTION
+              </span>
+              <span className="text-xs font-mono text-[#C04E2A] font-semibold">
+                Landmark Metabolic Research Library
+              </span>
+            </div>
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#351D1D] mt-1">
+              Select a Clinical Study or Upload Any Medical PDF
+            </h2>
+          </div>
+          <span className="text-xs font-mono text-[#786A61]">
+            Problem Statement 2 • steerclub.com
+          </span>
+        </div>
+
+        {/* 3 Landmark Study Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Study 1: GLP-1 & Lean Mass */}
+          <div
+            onClick={() => onSelectPaper('paper_glp1_muscle_2024')}
+            className={`p-5 rounded-xs border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+              activePaper?.paper_id === 'paper_glp1_muscle_2024'
+                ? 'bg-[#FFFDF9] border-[#661414] shadow-md ring-1 ring-[#661414]'
+                : 'bg-[#FFFDF9] border-[#DED2C5] hover:border-[#C04E2A]'
+            }`}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="px-2 py-0.5 bg-[#661414]/10 text-[#661414] font-bold rounded-xs">
+                  NEJM 2021
+                </span>
+                {activePaper?.paper_id === 'paper_glp1_muscle_2024' ? (
+                  <span className="text-[#416C49] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> ACTIVE
+                  </span>
+                ) : (
+                  <span className="text-[#786A61]">Wilding et al.</span>
+                )}
+              </div>
+              <h3 className="font-serif font-bold text-sm text-[#351D1D] leading-snug">
+                Once-Weekly Semaglutide in Adults with Overweight or Obesity
+              </h3>
+              <p className="text-xs text-[#786A61] line-clamp-2">
+                Landmark STEP-1 clinical trial: up to 39% of weight loss on GLP-1 is lean muscle mass, requiring high-protein protection.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-[#DED2C5] flex items-center justify-between text-xs font-mono">
+              <span className="text-[#C04E2A] font-bold">1,961 Patients</span>
+              <span className="text-[#661414] font-semibold flex items-center gap-1">
+                {activePaper?.paper_id === 'paper_glp1_muscle_2024' ? 'Current Paper' : 'Select Paper →'}
+              </span>
+            </div>
+          </div>
+
+          {/* Study 2: South Asian Phenotype */}
+          <div
+            onClick={() => onSelectPaper('paper_south_asian_phenotype_2024')}
+            className={`p-5 rounded-xs border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+              activePaper?.paper_id === 'paper_south_asian_phenotype_2024'
+                ? 'bg-[#FFFDF9] border-[#661414] shadow-md ring-1 ring-[#661414]'
+                : 'bg-[#FFFDF9] border-[#DED2C5] hover:border-[#C04E2A]'
+            }`}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="px-2 py-0.5 bg-[#C04E2A]/10 text-[#C04E2A] font-bold rounded-xs">
+                  DRCP 2023
+                </span>
+                {activePaper?.paper_id === 'paper_south_asian_phenotype_2024' ? (
+                  <span className="text-[#416C49] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> ACTIVE
+                  </span>
+                ) : (
+                  <span className="text-[#786A61]">Misra & Vikram</span>
+                )}
+              </div>
+              <h3 className="font-serif font-bold text-sm text-[#351D1D] leading-snug">
+                Insulin Resistance & The 'Thin-Fat' South Asian Phenotype
+              </h3>
+              <p className="text-xs text-[#786A61] line-clamp-2">
+                Why Indians with normal BMI suffer severe 3 PM insulin crashes, visceral adiposity, and earlier onset of type-2 diabetes.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-[#DED2C5] flex items-center justify-between text-xs font-mono">
+              <span className="text-[#C04E2A] font-bold">Indian Cohort</span>
+              <span className="text-[#661414] font-semibold flex items-center gap-1">
+                {activePaper?.paper_id === 'paper_south_asian_phenotype_2024' ? 'Current Paper' : 'Select Paper →'}
+              </span>
+            </div>
+          </div>
+
+          {/* Study 3: Adaptive Thermogenesis */}
+          <div
+            onClick={() => onSelectPaper('paper_metabolic_adaptation_2024')}
+            className={`p-5 rounded-xs border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+              activePaper?.paper_id === 'paper_metabolic_adaptation_2024'
+                ? 'bg-[#FFFDF9] border-[#661414] shadow-md ring-1 ring-[#661414]'
+                : 'bg-[#FFFDF9] border-[#DED2C5] hover:border-[#C04E2A]'
+            }`}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[10px] font-mono">
+                <span className="px-2 py-0.5 bg-[#416C49]/10 text-[#416C49] font-bold rounded-xs">
+                  OBESITY 2016
+                </span>
+                {activePaper?.paper_id === 'paper_metabolic_adaptation_2024' ? (
+                  <span className="text-[#416C49] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> ACTIVE
+                  </span>
+                ) : (
+                  <span className="text-[#786A61]">Kevin Hall et al.</span>
+                )}
+              </div>
+              <h3 className="font-serif font-bold text-sm text-[#351D1D] leading-snug">
+                Persistent Metabolic Adaptation 6 Years After Crash Dieting
+              </h3>
+              <p className="text-xs text-[#786A61] line-clamp-2">
+                Resting metabolic rate drops by ~500 kcal/day and stays suppressed for years, proving weight regain is hormonal biology.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-[#DED2C5] flex items-center justify-between text-xs font-mono">
+              <span className="text-[#C04E2A] font-bold">6-Year Followup</span>
+              <span className="text-[#661414] font-semibold flex items-center gap-1">
+                {activePaper?.paper_id === 'paper_metabolic_adaptation_2024' ? 'Current Paper' : 'Select Paper →'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 01. Ingestion Area */}
       <section className="bg-[#FFFDF9] border border-[#DED2C5] p-5 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#DED2C5]/70 pb-4">
           <div>
-            <h2 className="font-serif text-lg font-bold text-[#391E1D]">
-              Ingest Research Document
+            <h2 className="font-serif text-lg font-bold text-[#351D1D]">
+              Or Upload a New Scientific PDF / Publication
             </h2>
             <p className="text-xs text-[#786A61]">
-              Upload PDF files up to 25 MB. Every page text layer is extracted into verifiable evidence blocks.
+              Every page text layer is extracted into verifiable evidence blocks with verbatim quotes.
             </p>
           </div>
+
 
           <div className="flex items-center gap-2">
             <button

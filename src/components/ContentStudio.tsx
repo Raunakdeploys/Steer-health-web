@@ -40,9 +40,18 @@ import {
   Maximize2,
   Palette,
   FileSpreadsheet,
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  MoreHorizontal,
+  LayoutGrid,
+  Smartphone,
 } from 'lucide-react';
 
 interface ContentStudioProps {
+  papers?: PaperRecord[];
+  onSelectPaper?: (paperId: string) => void;
   activePaper: PaperRecord | null;
   approvedClaims: ClaimRecord[];
   allClaims: ClaimRecord[];
@@ -55,9 +64,13 @@ interface ContentStudioProps {
   onGenerateAllContent: () => Promise<void>;
   onNavigateToReview: () => void;
   onNavigateToDesk?: (claimId?: string) => void;
+  activeFormatTab?: 'carousel' | 'static' | 'reel' | 'caption';
+  onFormatTabChange?: (tab: 'carousel' | 'static' | 'reel' | 'caption') => void;
 }
 
 export const ContentStudio: React.FC<ContentStudioProps> = ({
+  papers = [],
+  onSelectPaper,
   activePaper,
   approvedClaims,
   allClaims,
@@ -70,8 +83,23 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   onGenerateAllContent,
   onNavigateToReview,
   onNavigateToDesk,
+  activeFormatTab,
+  onFormatTabChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'carousel' | 'static' | 'reel' | 'caption'>('carousel');
+  const [activeTab, setActiveTab] = useState<'carousel' | 'static' | 'reel' | 'caption'>(
+    activeFormatTab || 'carousel'
+  );
+
+  useEffect(() => {
+    if (activeFormatTab && activeFormatTab !== activeTab) {
+      setActiveTab(activeFormatTab);
+    }
+  }, [activeFormatTab]);
+
+  const handleTabChange = (tab: 'carousel' | 'static' | 'reel' | 'caption') => {
+    setActiveTab(tab);
+    if (onFormatTabChange) onFormatTabChange(tab);
+  };
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isVideoRecording, setIsVideoRecording] = useState(false);
@@ -80,6 +108,11 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [copiedCanvaCsv, setCopiedCanvaCsv] = useState(false);
   const [copiedCanvaTokens, setCopiedCanvaTokens] = useState(false);
+  const [copiedFullPost, setCopiedFullPost] = useState(false);
+  const [copiedSlideIndex, setCopiedSlideIndex] = useState<number | null>(null);
+
+  // Exact Full Picture Deck View Toggle ('PHONE' vs 'FULL_DECK')
+  const [viewMode, setViewMode] = useState<'PHONE' | 'FULL_DECK'>('PHONE');
 
   // Bonus: Language mode (English vs Hinglish)
   const [languageMode, setLanguageMode] = useState<'EN' | 'HINGLISH'>('EN');
@@ -288,6 +321,64 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     setTimeout(() => setCopiedCanvaTokens(false), 2500);
   };
 
+  const handleCopyFullPostPackage = () => {
+    if (!carousel) return;
+    const caption = carousel.caption_copy || '';
+    const slidesText = carousel.slides
+      .map((s, idx) => {
+        const headline = languageMode === 'HINGLISH' && s.hinglish_headline ? s.hinglish_headline : s.headline;
+        const body = languageMode === 'HINGLISH' && s.hinglish_body ? s.hinglish_body : s.body_text;
+        return `[SLIDE ${idx + 1} OF ${carousel.slides.length}] (${s.layout.toUpperCase()})
+HEADLINE: ${headline}
+BODY: ${body}
+${s.finding ? `EMPIRICAL FINDING: "${s.finding}"` : ''}
+${s.founder_note ? `FOUNDER NOTE: "${s.founder_note}"` : ''}
+${s.caveat_or_limitation ? `CLINICAL CAVEAT: ${s.caveat_or_limitation}` : ''}
+CITATION: ${s.source_citation || activePaper.journal}`;
+      })
+      .join('\n\n');
+
+    const fullPackage = `steer / CLINICAL INSTAGRAM DELIVERABLE
+PAPER: ${activePaper.title}
+AUTHORS: ${activePaper.authors} (${activePaper.year})
+DOI/CITATION: ${activePaper.doi || 'steerclub.com'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTAGRAM CAPTION & HASHTAGS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${caption}
+
+${carousel.hashtags?.join(' ') || ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAROUSEL SLIDES COPY (EXACT COPY):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${slidesText}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFIED BY CLINICAL COMMITTEE · steerclub.com`;
+
+    navigator.clipboard.writeText(fullPackage);
+    setCopiedFullPost(true);
+    setTimeout(() => setCopiedFullPost(false), 2500);
+  };
+
+  const handleCopySingleSlide = (slide: CarouselSlide, index: number) => {
+    const headline = languageMode === 'HINGLISH' && slide.hinglish_headline ? slide.hinglish_headline : slide.headline;
+    const body = languageMode === 'HINGLISH' && slide.hinglish_body ? slide.hinglish_body : slide.body_text;
+    const text = `[SLIDE ${index + 1} OF ${carousel?.slides.length || 7}] (${slide.layout.toUpperCase()})
+HEADLINE: ${headline}
+BODY: ${body}
+${slide.finding ? `FINDING: "${slide.finding}"` : ''}
+${slide.founder_note ? `NOTE: "${slide.founder_note}"` : ''}
+${slide.caveat_or_limitation ? `CAVEAT: ${slide.caveat_or_limitation}` : ''}
+CITATION: ${slide.source_citation || activePaper.journal} · steerclub.com`;
+
+    navigator.clipboard.writeText(text);
+    setCopiedSlideIndex(index);
+    setTimeout(() => setCopiedSlideIndex(null), 2500);
+  };
+
   const handleDownloadAllSlidePngs = async () => {
     if (!carousel) return;
     for (let i = 0; i < carousel.slides.length; i++) {
@@ -358,11 +449,84 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
         </div>
       )}
 
+      {/* 01B. Landmark Clinical Studies Quick Switcher */}
+      {papers && papers.length > 0 && onSelectPaper && (
+        <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-4 space-y-3 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E6CBBD]/60 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-[#661414] text-[#F5EBDF] text-[10px] font-mono font-bold uppercase rounded-xs">
+                LANDMARK METABOLIC STUDIES
+              </span>
+              <span className="text-xs text-[#786A61] font-mono hidden sm:inline">
+                Click any study to switch Instagram deliverables in real-time
+              </span>
+            </div>
+            <span className="text-[11px] font-mono text-[#C04E2A] font-semibold">
+              Problem Statement 2 • steerclub.com
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {papers.map((p) => {
+              const isSelected = p.paper_id === activePaper.paper_id;
+              const isGlp1 = p.paper_id.includes('glp1');
+              const isSouthAsian = p.paper_id.includes('south_asian');
+              const subtitle = isGlp1
+                ? 'STEP-1 Trial: 39% Lean Mass Loss on Semaglutide'
+                : isSouthAsian
+                ? 'DRCP 2023: Visceral Adiposity & 3 PM Insulin Crash'
+                : 'Obesity 2016: 500 kcal/day RMR Drop 6 Years Later';
+
+              return (
+                <button
+                  key={p.paper_id}
+                  onClick={() => onSelectPaper(p.paper_id)}
+                  className={`p-3 text-left border rounded-xs transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                    isSelected
+                      ? 'bg-[#661414] text-[#F5EBDF] border-[#661414] shadow-md ring-1 ring-[#661414]'
+                      : 'bg-[#FFFDF9] text-[#351D1D] border-[#E6CBBD] hover:border-[#C04E2A] hover:bg-[#F8F2EB]'
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span
+                        className={`px-1.5 py-0.5 rounded-xs font-bold uppercase ${
+                          isSelected ? 'bg-[#C04E2A] text-[#F5EBDF]' : 'bg-[#661414]/10 text-[#661414]'
+                        }`}
+                      >
+                        {p.journal || p.year}
+                      </span>
+                      {isSelected ? (
+                        <span className="text-[#F5EBDF] font-bold text-[10px] flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-[#C04E2A]" /> ACTIVE
+                        </span>
+                      ) : (
+                        <span className="text-[#786A61] text-[10px]">Switch Study →</span>
+                      )}
+                    </div>
+                    <div className="font-serif font-bold text-xs line-clamp-1">
+                      {p.title}
+                    </div>
+                    <div
+                      className={`text-[11px] leading-snug line-clamp-2 ${
+                        isSelected ? 'text-[#E6CBBD]' : 'text-[#786A61]'
+                      }`}
+                    >
+                      {subtitle}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 02. Format Selector Tabs */}
       <div className="flex flex-wrap items-center justify-between border-b border-[#E6CBBD] text-xs font-mono gap-2">
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setActiveTab('carousel')}
+            onClick={() => handleTabChange('carousel')}
             className={`px-4 py-2 border-b-2 font-medium transition-colors cursor-pointer flex items-center gap-2 ${
               activeTab === 'carousel'
                 ? 'border-[#C04E2A] text-[#C04E2A] font-bold bg-[#FFFDF9]'
@@ -374,7 +538,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('static')}
+            onClick={() => handleTabChange('static')}
             className={`px-4 py-2 border-b-2 font-medium transition-colors cursor-pointer flex items-center gap-2 ${
               activeTab === 'static'
                 ? 'border-[#C04E2A] text-[#C04E2A] font-bold bg-[#FFFDF9]'
@@ -386,7 +550,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('reel')}
+            onClick={() => handleTabChange('reel')}
             className={`px-4 py-2 border-b-2 font-medium transition-colors cursor-pointer flex items-center gap-2 ${
               activeTab === 'reel'
                 ? 'border-[#C04E2A] text-[#C04E2A] font-bold bg-[#FFFDF9]'
@@ -398,7 +562,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveTab('caption')}
+            onClick={() => handleTabChange('caption')}
             className={`px-4 py-2 border-b-2 font-medium transition-colors cursor-pointer flex items-center gap-2 ${
               activeTab === 'caption'
                 ? 'border-[#C04E2A] text-[#C04E2A] font-bold bg-[#FFFDF9]'
@@ -432,12 +596,199 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
         </div>
       </div>
 
-      {/* 03. FORMAT 1: CAROUSEL WORKSPACE */}
+      {/* 03. Format View Controls & Quick Actions */}
+      {/* 04. FORMAT 1: CAROUSEL WORKSPACE */}
       {activeTab === 'carousel' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="space-y-4">
           {carousel ? (
-            <>
-              {/* Left Column: Slide Gallery Preview (7 Cols) */}
+            <div>
+              {/* Exact Copy & View Mode Toolbar */}
+              <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-bold">
+                    PREVIEW MODE:
+                  </span>
+                  <div className="flex items-center border border-[#E6CBBD] rounded-xs bg-[#F8F2EB] p-0.5 text-xs font-mono">
+                    <button
+                      onClick={() => setViewMode('PHONE')}
+                      className={`px-3 py-1 rounded-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        viewMode === 'PHONE'
+                          ? 'bg-[#661414] text-[#F5EBDF] font-bold shadow-xs'
+                          : 'text-[#786A61] hover:text-[#351D1D]'
+                      }`}
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>Phone Simulator (Live Feed)</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('FULL_DECK')}
+                      className={`px-3 py-1 rounded-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        viewMode === 'FULL_DECK'
+                          ? 'bg-[#661414] text-[#F5EBDF] font-bold shadow-xs'
+                          : 'text-[#786A61] hover:text-[#351D1D]'
+                      }`}
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span>Full Picture Slide Deck ({carousel.slides.length} Slides)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick 1-Click Copy Deliverable Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={handleCopyFullPostPackage}
+                    className="px-3.5 py-1.5 bg-[#C04E2A] hover:bg-[#a63f1f] text-[#FFFDF9] text-xs font-bold rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                    title="Copies complete deliverable: Caption, hashtags, citations, and all slide copy"
+                  >
+                    {copiedFullPost ? <Check className="w-3.5 h-3.5 text-[#FFFDF9]" /> : <Copy className="w-3.5 h-3.5 text-[#FFFDF9]" />}
+                    <span>{copiedFullPost ? 'Post Package Copied!' : 'Copy Exact Post Package'}</span>
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      handleCopyCaption(
+                        (languageMode === 'HINGLISH' && carousel?.hinglish_caption
+                          ? carousel.hinglish_caption
+                          : carousel?.caption || '') +
+                          '\n\n' +
+                          (carousel?.hashtags.join(' ') || '')
+                      )
+                    }
+                    className="px-3 py-1.5 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#E6CBBD] text-xs font-mono text-[#351D1D] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    {copiedCaption ? <Check className="w-3 h-3 text-[#416C49]" /> : <Quote className="w-3 h-3 text-[#C04E2A]" />}
+                    <span>{copiedCaption ? 'Caption Copied!' : 'Copy Caption & Tags'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadAllSlidePngs}
+                    className="px-3 py-1.5 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#E6CBBD] text-xs font-mono text-[#351D1D] rounded-xs flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Download className="w-3 h-3 text-[#C04E2A]" />
+                    <span>Download All PNGs</span>
+                  </button>
+                </div>
+              </div>
+
+              {viewMode === 'FULL_DECK' ? (
+                /* FULL PICTURE SLIDE DECK (ALL 7 SLIDES GRID) */
+                <div className="space-y-4">
+                  <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#661414]">FULL PICTURE SLIDE DECK (ALL 7 SLIDES)</span>
+                      <span>·</span>
+                      <span className="text-[#786A61] truncate max-w-md">{activePaper.title}</span>
+                    </div>
+                    <span className="text-[#C04E2A] font-semibold">Click 'Copy Copy' on any slide to grab its exact text</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {carousel.slides.map((s, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-[#FFFDF9] border border-[#E6CBBD] rounded-xs overflow-hidden flex flex-col justify-between shadow-xs hover:border-[#C04E2A] transition-colors"
+                      >
+                        {/* Slide Card Header */}
+                        <div className="p-3 bg-[#F8F2EB] border-b border-[#E6CBBD] flex items-center justify-between text-[11px] font-mono">
+                          <span className="font-bold text-[#661414]">SLIDE {idx + 1} OF {carousel.slides.length}</span>
+                          <span className="text-[10px] uppercase text-[#786A61]">{s.layout}</span>
+                        </div>
+
+                        {/* Slide Visual Presentation */}
+                        <div
+                          className={`p-5 flex flex-col justify-between aspect-[4/5] select-none ${
+                            s.theme_variant === 'maroon'
+                              ? 'bg-[#661414] text-[#F5EBDF]'
+                              : 'bg-[#F5EBDF] text-[#351D1D]'
+                          }`}
+                        >
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between text-[9px] font-mono uppercase pb-1.5 border-b border-current/20">
+                              <span className="font-bold lowercase">steer</span>
+                              <span className="font-semibold">{idx + 1}/7</span>
+                            </div>
+
+                            <h4 className="font-serif text-sm font-bold leading-snug line-clamp-3">
+                              {languageMode === 'HINGLISH' && s.hinglish_headline
+                                ? s.hinglish_headline
+                                : s.headline}
+                            </h4>
+
+                            <p className="text-[11px] leading-relaxed opacity-90 line-clamp-4">
+                              {languageMode === 'HINGLISH' && s.hinglish_body
+                                ? s.hinglish_body
+                                : s.body_text}
+                            </p>
+
+                            {s.finding && (
+                              <div className="p-2 text-[10px] font-serif italic border-l-2 border-[#C04E2A] bg-black/5 rounded-r-xs line-clamp-2">
+                                "{s.finding}"
+                              </div>
+                            )}
+
+                            {s.founder_note && (
+                              <div className="font-handwritten text-[#C04E2A] text-sm font-bold line-clamp-1">
+                                {s.founder_note}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="text-[8px] font-mono pt-2 border-t border-current/20 flex justify-between items-center opacity-75">
+                            <span className="truncate max-w-[150px]">{s.source_citation || 'steerclub.com'}</span>
+                            <span className="font-bold">steer</span>
+                          </div>
+                        </div>
+
+                        {/* Slide Card Actions */}
+                        <div className="p-2.5 bg-[#FFFDF9] border-t border-[#E6CBBD] flex items-center justify-between gap-1 text-xs">
+                          <button
+                            onClick={() => handleCopySingleSlide(s, idx)}
+                            className="px-2.5 py-1 bg-[#F8F2EB] hover:bg-[#E6CBBD] text-[#351D1D] rounded-xs font-mono text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            {copiedSlideIndex === idx ? (
+                              <Check className="w-3 h-3 text-[#416C49]" />
+                            ) : (
+                              <Copy className="w-3 h-3 text-[#C04E2A]" />
+                            )}
+                            <span>{copiedSlideIndex === idx ? 'Copied!' : 'Copy Copy'}</span>
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setCurrentSlideIndex(idx);
+                                setViewMode('PHONE');
+                              }}
+                              className="px-2 py-1 border border-[#E6CBBD] hover:bg-[#F8F2EB] text-[#786A61] rounded-xs font-mono text-[10px] cursor-pointer"
+                              title="Inspect this slide inside Phone simulator"
+                            >
+                              Inspect
+                            </button>
+                            <button
+                              onClick={() => {
+                                downloadCarouselSlidePng(
+                                  s,
+                                  idx,
+                                  carousel.slides.length,
+                                  activePaper.title
+                                );
+                              }}
+                              className="px-2.5 py-1 bg-[#661414] hover:bg-[#4a0d0d] text-[#F5EBDF] rounded-xs font-mono text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <Download className="w-3 h-3 text-[#C04E2A]" />
+                              <span>PNG</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Phone Simulator & Editor */
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left Column: Slide Gallery Preview (7 Cols) */}
               <div className="lg:col-span-7 bg-[#FFFDF9] border border-[#E6CBBD] p-5 sm:p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between border-b border-[#E6CBBD] pb-3 text-xs font-mono gap-2">
                   <div className="flex items-center gap-2">
@@ -513,108 +864,203 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
                   </div>
                 )}
 
-                {/* Rendered Slide Frame with Steer Palette */}
+                {/* Photorealistic Instagram Smartphone Frame */}
                 {currentSlide && (
-                  <div
-                    className={`mx-auto border border-[#E6CBBD] p-7 sm:p-8 flex flex-col justify-between shadow-xs transition-all ${
-                      aspectRatio === '4:5'
-                        ? 'aspect-[4/5] max-w-[420px]'
-                        : aspectRatio === '1:1'
-                        ? 'aspect-square max-w-[420px]'
-                        : 'aspect-[9/16] max-w-[320px]'
-                    } ${
-                      currentSlide.theme_variant === 'maroon'
-                        ? 'bg-[#661414] text-[#F5EBDF]'
-                        : 'bg-[#F5EBDF] text-[#351D1D]'
-                    }`}
-                  >
-                    <div className="space-y-4">
-                      {/* Brand Header */}
-                      <div
-                        className={`flex items-center justify-between text-[10px] font-mono uppercase tracking-widest pb-2 border-b ${
-                          currentSlide.theme_variant === 'maroon'
-                            ? 'text-[#E6CBBD] border-[#F5EBDF]/20'
-                            : 'text-[#B58777] border-[#E6CBBD]'
-                        }`}
-                      >
-                        <span className="font-bold lowercase">steer</span>
-                        <span>
-                          {currentSlide.slide_number} / {carousel.slides.length}
-                        </span>
+                  <div className="mx-auto w-full max-w-[430px] bg-[#0E0E10] rounded-[48px] p-3 shadow-2xl border-4 border-[#252528] text-white">
+                    {/* Phone Status Bar & Dynamic Island */}
+                    <div className="flex items-center justify-between px-5 pt-1.5 pb-2 text-[11px] font-semibold text-white/80">
+                      <span>9:41</span>
+                      <div className="w-24 h-4 bg-black rounded-full mx-auto flex items-center justify-end pr-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#18181B] border border-white/20" />
                       </div>
-
-                      {/* Serif Headline with Italic Accent */}
-                      <h3
-                        className={`font-serif text-xl sm:text-2xl font-bold leading-tight ${
-                          currentSlide.theme_variant === 'maroon'
-                            ? 'text-[#F5EBDF]'
-                            : 'text-[#351D1D]'
-                        }`}
-                      >
-                        {languageMode === 'HINGLISH' && currentSlide.hinglish_headline
-                          ? currentSlide.hinglish_headline
-                          : currentSlide.headline}
-                      </h3>
-
-                      {/* Body text */}
-                      <p
-                        className={`text-xs leading-relaxed ${
-                          currentSlide.theme_variant === 'maroon'
-                            ? 'text-[#E6CBBD]'
-                            : 'text-[#351D1D]'
-                        }`}
-                      >
-                        {languageMode === 'HINGLISH' && currentSlide.hinglish_body
-                          ? currentSlide.hinglish_body
-                          : currentSlide.body_text}
-                      </p>
-
-                      {/* Empirical Finding Card */}
-                      {currentSlide.finding && (
-                        <div
-                          className={`p-3 border-l-2 text-xs font-serif italic ${
-                            currentSlide.theme_variant === 'maroon'
-                              ? 'bg-[#F5EBDF]/10 border-[#C04E2A] text-[#F5EBDF]'
-                              : 'bg-[#F8F2EB] border-[#C04E2A] text-[#351D1D]'
-                          }`}
-                        >
-                          "{currentSlide.finding}"
+                      <div className="flex items-center gap-1 text-[10px]">
+                        <span>5G</span>
+                        <div className="w-5 h-2.5 border border-white/80 rounded-2xs p-0.5 flex items-center">
+                          <div className="w-full h-full bg-white rounded-3xs" />
                         </div>
-                      )}
-
-                      {/* Handwritten Founder Note */}
-                      {currentSlide.founder_note && (
-                        <div className="font-handwritten text-[#C04E2A] text-lg sm:text-xl font-bold leading-snug">
-                          {currentSlide.founder_note}
-                        </div>
-                      )}
-
-                      {/* Scientific Caveat / Limitation */}
-                      {currentSlide.caveat_or_limitation && (
-                        <div className="p-2.5 bg-[#C04E2A]/10 border border-[#C04E2A]/30 text-[11px] text-[#C04E2A]">
-                          <span className="font-bold font-mono text-[9px] uppercase block">
-                            Study Limitation:
-                          </span>
-                          {currentSlide.caveat_or_limitation}
-                        </div>
-                      )}
+                      </div>
                     </div>
 
-                    {/* Footer sign-off */}
-                    <div
-                      className={`text-[10px] font-mono border-t pt-2 flex items-center justify-between ${
-                        currentSlide.theme_variant === 'maroon'
-                          ? 'text-[#E6CBBD]/80 border-[#F5EBDF]/20'
-                          : 'text-[#B58777] border-[#E6CBBD]'
-                      }`}
-                    >
-                      <span className="truncate max-w-[220px]">
-                        {currentSlide.source_citation || activePaper.journal}
-                      </span>
-                      <span className="font-bold lowercase">steerclub.com</span>
+                    {/* Instagram Profile Header */}
+                    <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/10 bg-[#141416] rounded-t-[36px]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full p-0.5 bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]">
+                          <div className="w-full h-full bg-[#661414] rounded-full flex items-center justify-center text-[12px] font-serif italic font-black text-[#F5EBDF]">
+                            s
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-white tracking-tight">steer.hq</span>
+                            <svg className="w-3.5 h-3.5 text-[#0095F6] fill-current" viewBox="0 0 24 24">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                            <span className="text-white/40 text-[10px] font-medium">• Follow</span>
+                          </div>
+                          <p className="text-[10px] text-white/60 leading-none mt-0.5 truncate max-w-[190px]">
+                            Medical Evidence • steerclub.com
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-white/60">
+                        <MoreHorizontal className="w-4 h-4 cursor-pointer hover:text-white" />
+                      </div>
+                    </div>
+
+                    {/* Instagram Post Slide Canvas */}
+                    <div className="relative overflow-hidden">
+                      <div
+                        className={`w-full p-6 sm:p-7 flex flex-col justify-between transition-all select-none ${
+                          aspectRatio === '4:5'
+                            ? 'aspect-[4/5]'
+                            : aspectRatio === '1:1'
+                            ? 'aspect-square'
+                            : 'aspect-[9/16]'
+                        } ${
+                          currentSlide.theme_variant === 'maroon'
+                            ? 'bg-[#661414] text-[#F5EBDF]'
+                            : 'bg-[#F5EBDF] text-[#351D1D]'
+                        }`}
+                      >
+                        <div className="space-y-3.5">
+                          {/* Brand Header & Slide Counter */}
+                          <div
+                            className={`flex items-center justify-between text-[10px] font-mono uppercase tracking-widest pb-2 border-b ${
+                              currentSlide.theme_variant === 'maroon'
+                                ? 'text-[#E6CBBD] border-[#F5EBDF]/20'
+                                : 'text-[#B58777] border-[#E6CBBD]'
+                            }`}
+                          >
+                            <span className="font-bold lowercase text-xs tracking-normal">steer</span>
+                            <span className="px-2 py-0.5 rounded-full bg-black/10 font-bold text-[9px]">
+                              Slide {currentSlide.slide_number} of {carousel.slides.length}
+                            </span>
+                          </div>
+
+                          {/* Serif Headline with Italic Accent */}
+                          <h3
+                            className={`font-serif text-lg sm:text-xl font-bold leading-snug tracking-tight ${
+                              currentSlide.theme_variant === 'maroon'
+                                ? 'text-[#F5EBDF]'
+                                : 'text-[#351D1D]'
+                            }`}
+                          >
+                            {languageMode === 'HINGLISH' && currentSlide.hinglish_headline
+                              ? currentSlide.hinglish_headline
+                              : currentSlide.headline}
+                          </h3>
+
+                          {/* Body text */}
+                          <p
+                            className={`text-xs leading-relaxed ${
+                              currentSlide.theme_variant === 'maroon'
+                                ? 'text-[#E6CBBD]'
+                                : 'text-[#351D1D]/90'
+                            }`}
+                          >
+                            {languageMode === 'HINGLISH' && currentSlide.hinglish_body
+                              ? currentSlide.hinglish_body
+                              : currentSlide.body_text}
+                          </p>
+
+                          {/* Empirical Finding Card */}
+                          {currentSlide.finding && (
+                            <div
+                              className={`p-3 border-l-2 text-xs font-serif italic rounded-r-xs ${
+                                currentSlide.theme_variant === 'maroon'
+                                  ? 'bg-[#F5EBDF]/10 border-[#C04E2A] text-[#F5EBDF]'
+                                  : 'bg-[#F8F2EB] border-[#C04E2A] text-[#351D1D]'
+                              }`}
+                            >
+                              "{currentSlide.finding}"
+                            </div>
+                          )}
+
+                          {/* Handwritten Founder Note */}
+                          {currentSlide.founder_note && (
+                            <div className="font-handwritten text-[#C04E2A] text-lg sm:text-xl font-bold leading-snug">
+                              {currentSlide.founder_note}
+                            </div>
+                          )}
+
+                          {/* Scientific Caveat / Limitation */}
+                          {currentSlide.caveat_or_limitation && (
+                            <div className="p-2.5 bg-[#C04E2A]/10 border border-[#C04E2A]/30 text-[11px] text-[#C04E2A] rounded-xs">
+                              <span className="font-bold font-mono text-[9px] uppercase block">
+                                Study Limitation:
+                              </span>
+                              {currentSlide.caveat_or_limitation}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Slide Footer */}
+                        <div
+                          className={`text-[9px] font-mono border-t pt-2 flex items-center justify-between ${
+                            currentSlide.theme_variant === 'maroon'
+                              ? 'text-[#E6CBBD]/80 border-[#F5EBDF]/20'
+                              : 'text-[#B58777] border-[#E6CBBD]'
+                          }`}
+                        >
+                          <span className="truncate max-w-[210px]">
+                            {currentSlide.source_citation || activePaper.journal}
+                          </span>
+                          <span className="font-bold lowercase">steerclub.com</span>
+                        </div>
+                      </div>
+
+                      {/* Instagram Slide Pill Overlay (1/7) in top right */}
+                      <div className="absolute top-3 right-3 px-2 py-0.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono rounded-full font-bold">
+                        {currentSlideIndex + 1}/{carousel.slides.length}
+                      </div>
+                    </div>
+
+                    {/* Instagram Interactive Action Bar */}
+                    <div className="px-3.5 py-2.5 bg-[#141416] border-t border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3.5">
+                        <button className="text-red-500 hover:scale-110 transition-transform cursor-pointer">
+                          <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+                        </button>
+                        <button className="text-white hover:text-white/80 transition-colors cursor-pointer">
+                          <MessageCircle className="w-5 h-5" />
+                        </button>
+                        <button className="text-white hover:text-white/80 transition-colors cursor-pointer">
+                          <Send className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Instagram Pagination Dots */}
+                      <div className="flex items-center gap-1.5">
+                        {carousel.slides.map((_, i) => (
+                          <span
+                            key={i}
+                            onClick={() => setCurrentSlideIndex(i)}
+                            className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                              currentSlideIndex === i ? 'w-4 bg-[#C04E2A]' : 'w-1.5 bg-white/30 hover:bg-white/60'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      <button className="text-white hover:text-white/80 transition-colors cursor-pointer">
+                        <Bookmark className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Instagram Caption & Feed Context */}
+                    <div className="px-3.5 pb-3.5 pt-1 bg-[#141416] rounded-b-[36px] text-xs space-y-1">
+                      <p className="font-bold text-white text-[11px]">2,842 likes</p>
+                      <p className="text-white/90 text-[11px] leading-relaxed line-clamp-2">
+                        <strong className="font-bold text-white mr-1.5">steer.hq</strong>
+                        {activePaper.title}: Our clinical breakdown reveals what happens to lean muscle mass and metabolic rate...
+                      </p>
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider pt-0.5">
+                        View all 184 comments • 2 hours ago
+                      </p>
                     </div>
                   </div>
                 )}
+
 
                 {/* Slide Actions */}
                 <div className="flex flex-wrap items-center justify-between pt-2 border-t border-[#E6CBBD] gap-2">
@@ -787,21 +1233,17 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
                             </div>
                           );
                         })
-                      ) : (
-                        <div className="p-2 text-xs text-[#B58777] bg-[#F8F2EB]">
-                          No upstream claim mapped to this slide.
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
-                )}
+                </div>
+
               </div>
-            </>
-          ) : (
-            <div className="lg:col-span-12 p-8 text-center text-[#B58777]">
-              Generate content to preview carousel deck.
-            </div>
-          )}
+            ) : (
+              <div className="p-8 text-center text-[#B58777]">
+                Generate content to preview carousel deck.
+              </div>
+            )}
         </div>
       )}
 
@@ -822,50 +1264,125 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
                   </button>
                 </div>
 
-                {/* Rendered Frame */}
-                <div className="aspect-square max-w-[420px] mx-auto bg-[#F5EBDF] border border-[#E6CBBD] p-7 sm:p-8 flex flex-col justify-between shadow-xs">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-[#B58777] border-b border-[#E6CBBD] pb-2">
-                      <span className="font-bold lowercase">steer</span>
-                      <span>Single Study Brief</span>
+                {/* Photorealistic Instagram Phone Mockup */}
+                <div className="mx-auto w-full max-w-[430px] bg-[#0E0E10] rounded-[48px] p-3 shadow-2xl border-4 border-[#252528] text-white">
+                  {/* Phone Status Bar */}
+                  <div className="flex items-center justify-between px-5 pt-1.5 pb-2 text-[11px] font-semibold text-white/80">
+                    <span>9:41</span>
+                    <div className="w-24 h-4 bg-black rounded-full mx-auto flex items-center justify-end pr-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#18181B] border border-white/20" />
                     </div>
-
-                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#351D1D] leading-tight">
-                      {languageMode === 'HINGLISH' && staticPost.hinglish_headline
-                        ? staticPost.hinglish_headline
-                        : staticPost.headline}
-                    </h3>
-
-                    <p className="text-xs text-[#351D1D] leading-relaxed">
-                      {languageMode === 'HINGLISH' && staticPost.hinglish_supporting_text
-                        ? staticPost.hinglish_supporting_text
-                        : staticPost.supporting_text}
-                    </p>
-
-                    <div className="p-3 bg-[#F8F2EB] border-l-2 border-[#C04E2A] font-serif text-xs italic text-[#351D1D]">
-                      "{staticPost.primary_finding}"
-                    </div>
-
-                    {staticPost.founder_note && (
-                      <div className="font-handwritten text-[#C04E2A] text-lg font-bold">
-                        {staticPost.founder_note}
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <span>5G</span>
+                      <div className="w-5 h-2.5 border border-white/80 rounded-2xs p-0.5 flex items-center">
+                        <div className="w-full h-full bg-white rounded-3xs" />
                       </div>
-                    )}
-
-                    <div className="p-2.5 bg-[#C04E2A]/10 border border-[#C04E2A]/30 text-[11px] text-[#C04E2A]">
-                      <span className="font-mono text-[9px] uppercase font-bold block">
-                        Editorial Qualification:
-                      </span>
-                      {staticPost.qualification}
                     </div>
                   </div>
 
-                  <div className="text-[10px] font-mono text-[#B58777] border-t border-[#E6CBBD] pt-2 flex justify-between">
-                    <span className="truncate max-w-[240px]">{staticPost.source_note}</span>
-                    <span className="font-bold lowercase">steerclub.com</span>
+                  {/* Instagram Header */}
+                  <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/10 bg-[#141416] rounded-t-[36px]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full p-0.5 bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]">
+                        <div className="w-full h-full bg-[#661414] rounded-full flex items-center justify-center text-[12px] font-serif italic font-black text-[#F5EBDF]">
+                          s
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-white tracking-tight">steer.hq</span>
+                          <svg className="w-3.5 h-3.5 text-[#0095F6] fill-current" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                          </svg>
+                          <span className="text-white/40 text-[10px] font-medium">• Follow</span>
+                        </div>
+                        <p className="text-[10px] text-white/60 leading-none mt-0.5 truncate max-w-[190px]">
+                          Editorial Field Note • steerclub.com
+                        </p>
+                      </div>
+                    </div>
+                    <MoreHorizontal className="w-4 h-4 text-white/60 cursor-pointer" />
+                  </div>
+
+                  {/* Rendered Static Frame */}
+                  <div className="aspect-square w-full bg-[#F5EBDF] text-[#351D1D] p-6 sm:p-7 flex flex-col justify-between select-none">
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-[#B58777] border-b border-[#E6CBBD] pb-2">
+                        <span className="font-bold lowercase text-xs tracking-normal">steer</span>
+                        <span className="px-2 py-0.5 rounded-full bg-black/10 font-bold text-[9px]">
+                          Founder Field Note
+                        </span>
+                      </div>
+
+                      <h3 className="font-serif text-lg sm:text-xl font-bold text-[#351D1D] leading-snug">
+                        {languageMode === 'HINGLISH' && staticPost.hinglish_headline
+                          ? staticPost.hinglish_headline
+                          : staticPost.headline}
+                      </h3>
+
+                      <p className="text-xs text-[#351D1D]/90 leading-relaxed">
+                        {languageMode === 'HINGLISH' && staticPost.hinglish_supporting_text
+                          ? staticPost.hinglish_supporting_text
+                          : staticPost.supporting_text}
+                      </p>
+
+                      <div className="p-3 bg-[#F8F2EB] border-l-2 border-[#C04E2A] font-serif text-xs italic text-[#351D1D] rounded-r-xs">
+                        "{staticPost.primary_finding}"
+                      </div>
+
+                      {staticPost.founder_note && (
+                        <div className="font-handwritten text-[#C04E2A] text-lg font-bold leading-snug">
+                          {staticPost.founder_note}
+                        </div>
+                      )}
+
+                      <div className="p-2 bg-[#C04E2A]/10 border border-[#C04E2A]/30 text-[11px] text-[#C04E2A] rounded-xs">
+                        <span className="font-mono text-[9px] uppercase font-bold block">
+                          Editorial Qualification:
+                        </span>
+                        {staticPost.qualification}
+                      </div>
+                    </div>
+
+                    <div className="text-[9px] font-mono text-[#B58777] border-t border-[#E6CBBD] pt-2 flex justify-between">
+                      <span className="truncate max-w-[210px]">{staticPost.source_note}</span>
+                      <span className="font-bold lowercase">steerclub.com</span>
+                    </div>
+                  </div>
+
+                  {/* Instagram Interactive Action Bar */}
+                  <div className="px-3.5 py-2.5 bg-[#141416] border-t border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                      <button className="text-red-500 hover:scale-110 transition-transform cursor-pointer">
+                        <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+                      </button>
+                      <button className="text-white hover:text-white/80 transition-colors cursor-pointer">
+                        <MessageCircle className="w-5 h-5" />
+                      </button>
+                      <button className="text-white hover:text-white/80 transition-colors cursor-pointer">
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <button className="text-white hover:text-white/80 transition-colors cursor-pointer">
+                      <Bookmark className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Instagram Caption */}
+                  <div className="px-3.5 pb-3.5 pt-1 bg-[#141416] rounded-b-[36px] text-xs space-y-1">
+                    <p className="font-bold text-white text-[11px]">1,930 likes</p>
+                    <p className="text-white/90 text-[11px] leading-relaxed line-clamp-2">
+                      <strong className="font-bold text-white mr-1.5">steer.hq</strong>
+                      {staticPost.headline}
+                    </p>
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider pt-0.5">
+                      View all 92 comments • 4 hours ago
+                    </p>
                   </div>
                 </div>
               </div>
+
 
               {/* Attributes */}
               <div className="lg:col-span-5 bg-[#FFFDF9] border border-[#E6CBBD] p-5 space-y-4">
@@ -1050,49 +1567,95 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
                   </span>
                 </div>
 
-                {/* 9:16 Phone Frame */}
-                <div className="aspect-[9/16] max-w-[280px] mx-auto bg-[#351D1D] text-[#F5EBDF] p-5 flex flex-col justify-between border-2 border-[#351D1D] rounded-lg shadow-md relative overflow-hidden">
-                  {/* Simulated B-Roll Background Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-[#351D1D]/90 via-[#661414]/80 to-[#351D1D]/95 pointer-events-none" />
-
-                  {/* Header Bar */}
-                  <div className="relative z-10 flex justify-between text-[9px] font-mono uppercase text-[#E6CBBD] border-b border-[#F5EBDF]/20 pb-1.5">
-                    <span className="font-bold lowercase">steer</span>
-                    <span>Scene {reel.scenes[currentReelSceneIndex]?.scene_number || 1}</span>
+                {/* 9:16 Instagram Reels Smartphone Frame */}
+                <div className="mx-auto w-full max-w-[310px] bg-[#0E0E10] rounded-[44px] p-2.5 shadow-2xl border-4 border-[#252528] text-white">
+                  {/* Status Bar */}
+                  <div className="flex items-center justify-between px-4 pt-1 pb-1.5 text-[10px] font-semibold text-white/80">
+                    <span>9:41</span>
+                    <div className="w-16 h-3 bg-black rounded-full mx-auto" />
+                    <span>5G</span>
                   </div>
 
-                  {/* Center Content */}
-                  <div className="relative z-10 text-center space-y-3 my-auto">
-                    <span className="text-[10px] font-mono uppercase text-[#C04E2A] bg-[#F5EBDF] px-2 py-0.5 rounded-xs font-bold inline-block">
-                      {reel.scenes[currentReelSceneIndex]?.visual_cue.substring(0, 32)}...
-                    </span>
+                  {/* 9:16 Reel Viewport */}
+                  <div className="aspect-[9/16] w-full rounded-[32px] bg-[#1a0a0a] text-[#F5EBDF] p-4 flex flex-col justify-between relative overflow-hidden select-none border border-white/10 shadow-inner">
+                    {/* Atmospheric B-Roll / Metabolic Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#661414]/80 via-[#351D1D]/90 to-[#120505] pointer-events-none" />
 
-                    <h4 className="font-serif text-lg font-bold leading-snug text-[#F5EBDF]">
-                      {reel.scenes[currentReelSceneIndex]?.on_screen_text || reel.title}
-                    </h4>
+                    {/* Top Bar with Reels Tag */}
+                    <div className="relative z-10 flex items-center justify-between text-[10px] font-mono uppercase text-[#E6CBBD]">
+                      <span className="font-serif italic font-bold text-white text-xs">Reels</span>
+                      <span className="bg-black/40 px-2 py-0.5 rounded-full text-[9px]">
+                        Scene {reel.scenes[currentReelSceneIndex]?.scene_number || 1} / {reel.scenes.length}
+                      </span>
+                    </div>
 
-                    {/* Word-by-word Subtitle Simulator */}
-                    <div className="p-2.5 bg-[#351D1D]/80 border border-[#E6CBBD]/30 rounded-xs text-xs font-mono text-[#F5EBDF] leading-tight">
-                      <span className="text-[#C04E2A] font-bold">"</span>
-                      {languageMode === 'HINGLISH' &&
-                      reel.scenes[currentReelSceneIndex]?.hinglish_subtitle
-                        ? reel.scenes[currentReelSceneIndex].hinglish_subtitle
-                        : reel.scenes[currentReelSceneIndex]?.subtitle_text || 'Listening...'}
-                      <span className="text-[#C04E2A] font-bold">"</span>
+                    {/* Center Animated Karaoke / On-Screen Visuals */}
+                    <div className="relative z-10 text-center space-y-3 my-auto px-1">
+                      <span className="text-[9px] font-mono uppercase tracking-wider text-[#C04E2A] bg-[#F5EBDF] px-2 py-0.5 rounded-full font-bold inline-block shadow-xs">
+                        {reel.scenes[currentReelSceneIndex]?.visual_cue.substring(0, 30)}...
+                      </span>
+
+                      <h4 className="font-serif text-base sm:text-lg font-bold leading-snug text-[#F5EBDF] drop-shadow-md">
+                        {reel.scenes[currentReelSceneIndex]?.on_screen_text || reel.title}
+                      </h4>
+
+                      {/* Karaoke Subtitles */}
+                      <div className="p-3 bg-black/60 backdrop-blur-md border border-white/20 rounded-xl text-xs font-mono text-[#F5EBDF] leading-snug shadow-lg">
+                        <span className="text-[#C04E2A] font-bold text-sm mr-1">“</span>
+                        {languageMode === 'HINGLISH' &&
+                        reel.scenes[currentReelSceneIndex]?.hinglish_subtitle
+                          ? reel.scenes[currentReelSceneIndex].hinglish_subtitle
+                          : reel.scenes[currentReelSceneIndex]?.subtitle_text || 'Listening...'}
+                        <span className="text-[#C04E2A] font-bold text-sm ml-1">”</span>
+                      </div>
+                    </div>
+
+                    {/* Right-Side Instagram Reels Action Rail */}
+                    <div className="absolute right-2.5 bottom-14 z-20 flex flex-col items-center gap-3 text-white text-[10px]">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <button className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
+                          <Heart className="w-4 h-4 fill-red-500 text-red-500" />
+                        </button>
+                        <span className="font-bold text-[9px]">14.2k</span>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-0.5">
+                        <button className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
+                          <MessageCircle className="w-4 h-4" />
+                        </button>
+                        <span className="font-bold text-[9px]">428</span>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-0.5">
+                        <button className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
+                          <Send className="w-4 h-4" />
+                        </button>
+                        <span className="font-bold text-[9px]">Share</span>
+                      </div>
+
+                      <button className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
+                        <Bookmark className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Bottom Handle & Audio Track */}
+                    <div className="relative z-10 space-y-1 text-left pr-12">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-[#661414] border border-white/40 flex items-center justify-center text-[9px] font-serif italic font-bold">
+                          s
+                        </div>
+                        <span className="font-bold text-[11px] text-white">steer.hq</span>
+                        <span className="px-1.5 py-0.2 text-[8px] bg-white/20 rounded-xs font-semibold">Follow</span>
+                      </div>
+                      <p className="text-[10px] text-white/80 line-clamp-1">
+                        {reel.title}: Medical Longevity Breakdown
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[9px] text-white/60">
+                        <span>🎵</span>
+                        <span className="truncate max-w-[150px]">Original Audio • steerclub.com</span>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Bottom Instagram overlay bar */}
-                  <div className="relative z-10 border-t border-[#F5EBDF]/20 pt-2 text-[9px] font-mono text-[#E6CBBD] flex justify-between">
-                    <span>@steerclub</span>
-                    <span className="lowercase">steerclub.com</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 text-center">
-                  <p className="text-[11px] text-[#B58777]">
-                    Simulates vertical Instagram Reels with live Web Speech voiceover synthesis.
-                  </p>
                 </div>
               </div>
             </>

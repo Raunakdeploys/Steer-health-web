@@ -263,21 +263,35 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   return (
     <div className="max-w-[1500px] mx-auto p-4 sm:p-6 space-y-6">
       {/* 01. Desk Action Header & Filter Bar */}
-      <div className="bg-[#FFFDF9] border border-[#DED2C5] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-[#FFFDF9] border border-[#DED2C5] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
         {/* Left: Metrics & Status */}
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          <span className="font-serif font-bold text-base text-[#391E1D]">
-            Claim Review Desk
-          </span>
-          <span className="text-[#DED2C5]">|</span>
-          <div className="flex items-center gap-2 font-mono text-[11px]">
-            <span className="text-[#416C49] font-semibold">{approvedCount} Approved</span>
-            <span>·</span>
-            <span className="text-[#BB4B2D] font-semibold">{flaggedCount} Flagged</span>
-            <span>·</span>
-            <span className="text-[#74191D] font-semibold">{blockedCount} Blocked</span>
-            <span>·</span>
-            <span className="text-[#786A61]">{pendingCount} Pending</span>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-[#661414] text-[#F5EBDF] text-[10px] font-mono font-bold uppercase rounded-xs">
+              STAGE 02
+            </span>
+            <h2 className="font-serif font-bold text-lg text-[#351D1D]">
+              Doctor Review Gate (12-Rule Clinical Audit)
+            </h2>
+          </div>
+          <p className="text-xs text-[#786A61]">
+            Deterministic rule engine checks verbatim quotes, study design, and pop over-generalization before content generation.
+          </p>
+          <div className="flex items-center gap-2 font-mono text-[11px] pt-1">
+            <span className="text-[#416C49] font-semibold bg-[#416C49]/10 px-2 py-0.5 rounded-xs">
+              ✓ {approvedCount} Human Approved
+            </span>
+            <span className="text-[#BB4B2D] font-semibold bg-[#BB4B2D]/10 px-2 py-0.5 rounded-xs">
+              ⚠ {flaggedCount} Flagged
+            </span>
+            {blockedCount > 0 && (
+              <span className="text-[#661414] font-semibold bg-[#661414]/10 px-2 py-0.5 rounded-xs">
+                ✕ {blockedCount} Blocked
+              </span>
+            )}
+            <span className="text-[#786A61] font-mono">
+              ({validatedClaims.length} Claims Total)
+            </span>
           </div>
         </div>
 
@@ -551,10 +565,10 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => handleApprove(activeClaim)}
-                    className="w-full py-2 px-3 text-xs font-semibold bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    className="w-full py-2.5 px-3 text-xs font-semibold bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Approve Claim for Public Content</span>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Sign Off & Approve Claim (Doctor Verified)</span>
                   </button>
 
                   <div className="grid grid-cols-3 gap-2">

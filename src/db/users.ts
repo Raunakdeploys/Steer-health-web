@@ -7,6 +7,9 @@ export async function getOrCreateUser(
   displayName?: string | null,
   photoUrl?: string | null
 ) {
+  if (!process.env.SQL_HOST) {
+    return { uid, email, displayName, photoUrl };
+  }
   try {
     const result = await db
       .insert(users)
@@ -28,7 +31,7 @@ export async function getOrCreateUser(
 
     return result[0];
   } catch (error) {
-    console.error('getOrCreateUser failed in PostgreSQL:', error);
-    throw new Error('User synchronization failed. Please try again.', { cause: error });
+    console.warn('getOrCreateUser skipped (PostgreSQL not connected):', error);
+    return { uid, email, displayName, photoUrl };
   }
 }

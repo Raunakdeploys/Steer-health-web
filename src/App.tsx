@@ -52,14 +52,17 @@ import { PostScheduler } from './components/PostScheduler';
 import { SubmissionPacket } from './components/SubmissionPacket';
 import { EvidenceReportView } from './components/EvidenceReportView';
 import { SelfTestRunner } from './components/SelfTestRunner';
+import { GoogleAuthModal } from './components/GoogleAuthModal';
 import { propagateClaimChange } from './utils/impactAnalysis';
 
 export default function App() {
   const { user, idToken } = useAuth();
 
-  const [currentTab, setCurrentTab] = useState<ActiveTab>('workspace');
+  const [currentTab, setCurrentTab] = useState<ActiveTab>('studio');
+  const [studioTab, setStudioTab] = useState<'carousel' | 'static' | 'reel' | 'caption'>('carousel');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Persistence State
   const [papers, setPapers] = useState<PaperRecord[]>([]);
@@ -539,6 +542,7 @@ export default function App() {
         onOpenDemo={handleResetDemo}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
       />
 
       {/* Mobile Sidebar Backdrop Overlay */}
@@ -561,41 +565,29 @@ export default function App() {
           onToggleInspector={() => setIsInspectorOpen(!isInspectorOpen)}
           sqlSyncStatus={sqlSyncStatus}
           quickActionLabel={
-            currentTab === 'workspace'
-              ? 'Investigation Desk'
-              : currentTab === 'desk'
-              ? 'Provenance Graph'
-              : currentTab === 'graph'
-              ? 'Investigation Desk'
-              : currentTab === 'papers'
-              ? 'Select PDF'
-              : currentTab === 'review'
-              ? 'Extract Claims'
+            currentTab === 'papers'
+              ? 'Doctor Review Gate →'
+              : currentTab === 'review' || currentTab === 'desk' || currentTab === 'graph'
+              ? 'Content Studio →'
               : currentTab === 'studio'
-              ? 'Generate Content'
+              ? '7-Day Calendar →'
               : currentTab === 'schedule'
-              ? 'Submission Packet'
+              ? 'Pitch Packet →'
               : currentTab === 'submission'
-              ? 'Content Calendar'
+              ? 'Content Studio'
               : undefined
           }
           onQuickAction={
-            currentTab === 'workspace'
-              ? () => setCurrentTab('desk')
-              : currentTab === 'desk'
-              ? () => setCurrentTab('graph')
-              : currentTab === 'graph'
-              ? () => setCurrentTab('desk')
-              : currentTab === 'papers'
-              ? () => setCurrentTab('papers')
-              : currentTab === 'review'
-              ? undefined
+            currentTab === 'papers'
+              ? () => setCurrentTab('review')
+              : currentTab === 'review' || currentTab === 'desk' || currentTab === 'graph'
+              ? () => setCurrentTab('studio')
               : currentTab === 'studio'
-              ? handleGenerateAllContent
+              ? () => setCurrentTab('schedule')
               : currentTab === 'schedule'
               ? () => setCurrentTab('submission')
               : currentTab === 'submission'
-              ? () => setCurrentTab('schedule')
+              ? () => setCurrentTab('studio')
               : undefined
           }
         />
@@ -756,6 +748,10 @@ export default function App() {
                   if (claimId) setSelectedClaimId(claimId);
                   setCurrentTab('desk');
                 }}
+                activeFormatTab={studioTab}
+                onFormatTabChange={setStudioTab}
+                papers={papers}
+                onSelectPaper={handleSwitchPaper}
               />
             )}
 
@@ -769,6 +765,7 @@ export default function App() {
                   saveScheduledPosts(updated);
                 }}
                 onNavigateToStudio={(tab, targetPaperId) => {
+                  if (tab) setStudioTab(tab);
                   if (targetPaperId) {
                     setActivePaperIdState(targetPaperId);
                     setActivePaperId(targetPaperId);
@@ -788,6 +785,7 @@ export default function App() {
                 staticPosts={staticPosts}
                 reels={reels}
                 onNavigateToStudio={(tab, targetPaperId) => {
+                  if (tab) setStudioTab(tab);
                   if (targetPaperId) {
                     setActivePaperIdState(targetPaperId);
                     setActivePaperId(targetPaperId);
@@ -850,6 +848,13 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* Global Google Authentication Modal */}
+      <GoogleAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        sqlSyncStatus={sqlSyncStatus}
+      />
     </div>
   );
 }
