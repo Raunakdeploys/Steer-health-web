@@ -36,9 +36,6 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
   const [customName, setCustomName] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState<string | null>(null);
-  const [showDomainHelp, setShowDomainHelp] = useState(false);
-
-  if (!isOpen) return null;
 
   const handleSelectGoogleAccount = async (email: string, name: string) => {
     setIsSigningIn(email);
@@ -68,20 +65,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
     }
   };
 
-  const handleNativeGooglePopup = async () => {
-    setIsSigningIn('native_popup');
-    try {
-      const res = await signInWithGoogle();
-      if (res.success) {
-        onClose();
-      } else {
-        // If popup was blocked or unauthorized domain on Render, smooth account chooser is already active
-        setShowDomainHelp(true);
-      }
-    } finally {
-      setIsSigningIn(null);
-    }
-  };
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
@@ -339,63 +323,6 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </form>
-              )}
-
-              {/* Try Native Browser Popup Button */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={handleNativeGooglePopup}
-                  disabled={loading || !!isSigningIn}
-                  className="w-full py-2 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-xs font-medium text-gray-600 flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>Launch External Google Popup</span>
-                </button>
-              </div>
-
-              {/* Informative Domain Setting Guide for Render Deployment */}
-              {showDomainHelp && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1.5 animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between font-semibold">
-                    <span>Render Domain Notice:</span>
-                    <button
-                      onClick={() => setShowDomainHelp(false)}
-                      className="text-amber-700 hover:text-amber-900"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-amber-800">
-                    To allow browser-native popups on your Render host (<code>onrender.com</code>), add your Render domain to Authorized Domains in the Firebase Console. The Google Accounts chooser above already signs you in seamlessly!
-                  </p>
-                  <a
-                    href="https://console.firebase.google.com/project/gen-lang-client-0652918589/authentication/settings"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 underline hover:text-amber-950"
-                  >
-                    <span>Open Firebase Authorized Domains</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
               )}
 
               {/* Google Security Footer */}
