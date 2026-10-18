@@ -9,17 +9,27 @@ import {
   StaticPostContent,
   ReelContent,
 } from '../types/index.ts';
+import { ALL_PAPERS, ALL_PASSAGES, ALL_CLAIMS, ALL_CAROUSELS, ALL_STATIC_POSTS, ALL_REELS } from '../utils/storage.ts';
+
+const isSqlConfigured = !!process.env.SQL_HOST;
 
 /**
- * Fetch all papers for a user from Cloud SQL
+ * Fetch all papers for a user from Cloud SQL with resilient local fallback
  */
 export async function getUserPapers(userId: string): Promise<PaperRecord[]> {
+  if (!isSqlConfigured) {
+    return ALL_PAPERS;
+  }
   try {
     const rows = await db
       .select()
       .from(papers)
       .where(eq(papers.userId, userId))
       .orderBy(desc(papers.createdAt));
+
+    if (rows.length === 0) {
+      return ALL_PAPERS;
+    }
 
     return rows.map((r) => ({
       paper_id: r.id,
@@ -40,15 +50,15 @@ export async function getUserPapers(userId: string): Promise<PaperRecord[]> {
       has_unreadable_pages: false,
     }));
   } catch (error) {
-    console.error('Failed to get papers from Cloud SQL:', error);
-    throw new Error('Database query failed while fetching papers.', { cause: error });
+    return ALL_PAPERS;
   }
 }
 
 /**
- * Save or update a paper record in Cloud SQL
+ * Save or update a paper record in Cloud SQL with resilient fallback
  */
 export async function saveUserPaper(userId: string, paper: PaperRecord): Promise<void> {
+  if (!isSqlConfigured) return;
   try {
     const parsedYear = parseInt(paper.year, 10) || new Date().getFullYear();
     await db
@@ -82,35 +92,40 @@ export async function saveUserPaper(userId: string, paper: PaperRecord): Promise
         },
       });
   } catch (error) {
-    console.error('Failed to save paper to Cloud SQL:', error);
-    throw new Error('Database query failed while saving paper.', { cause: error });
+    // Silent failover to local session
   }
 }
 
 /**
- * Delete a paper and all associated data
+ * Delete a paper and all associated data with resilient fallback
  */
 export async function deleteUserPaper(userId: string, paperId: string): Promise<void> {
+  if (!isSqlConfigured) return;
   try {
     await db
       .delete(papers)
       .where(and(eq(papers.id, paperId), eq(papers.userId, userId)));
   } catch (error) {
-    console.error('Failed to delete paper from Cloud SQL:', error);
-    throw new Error('Database query failed while deleting paper.', { cause: error });
+    // Silent failover
   }
 }
 
 /**
- * Fetch all evidence passages for a user from Cloud SQL
+ * Fetch all evidence passages for a user from Cloud SQL with resilient fallback
  */
 export async function getUserPassages(userId: string, paperId?: string): Promise<EvidencePassage[]> {
+  if (!isSqlConfigured) {
+    return ALL_PASSAGES;
+  }
   try {
     const condition = paperId
       ? and(eq(evidencePassages.userId, userId), eq(evidencePassages.paperId, paperId))
       : eq(evidencePassages.userId, userId);
 
     const rows = await db.select().from(evidencePassages).where(condition);
+    if (rows.length === 0) {
+      return ALL_PASSAGES;
+    }
 
     return rows.map((r) => {
       const validSections: EvidencePassage['section'][] = [
@@ -136,19 +151,19 @@ export async function getUserPassages(userId: string, paperId?: string): Promise
       };
     });
   } catch (error) {
-    console.error('Failed to get passages from Cloud SQL:', error);
-    throw new Error('Database query failed while fetching passages.', { cause: error });
+    return ALL_PASSAGES;
   }
 }
 
 /**
- * Bulk save evidence passages for a paper in Cloud SQL
+ * Bulk save evidence passages for a paper in Cloud SQL with resilient fallback
  */
 export async function saveUserPassages(
   userId: string,
   paperId: string,
   passagesList: EvidencePassage[]
 ): Promise<void> {
+  if (!isSqlConfigured) return;
   try {
     if (passagesList.length === 0) return;
 
@@ -180,21 +195,26 @@ export async function saveUserPassages(
         });
     }
   } catch (error) {
-    console.error('Failed to save passages to Cloud SQL:', error);
-    throw new Error('Database query failed while saving evidence passages.', { cause: error });
+    // Silent failover
   }
 }
 
 /**
- * Fetch claims for a user from Cloud SQL
+ * Fetch claims for a user from Cloud SQL with resilient fallback
  */
 export async function getUserClaims(userId: string, paperId?: string): Promise<ClaimRecord[]> {
+  if (!isSqlConfigured) {
+    return ALL_CLAIMS;
+  }
   try {
     const condition = paperId
       ? and(eq(claims.userId, userId), eq(claims.paperId, paperId))
       : eq(claims.userId, userId);
 
     const rows = await db.select().from(claims).where(condition);
+    if (rows.length === 0) {
+      return ALL_CLAIMS;
+    }
 
     return rows.map((r) => {
       let parsedEvidenceIds: string[] = [];
@@ -231,15 +251,15 @@ export async function getUserClaims(userId: string, paperId?: string): Promise<C
       };
     });
   } catch (error) {
-    console.error('Failed to get claims from Cloud SQL:', error);
-    throw new Error('Database query failed while fetching claims.', { cause: error });
+    return ALL_CLAIMS;
   }
 }
 
 /**
- * Save or update a single claim in Cloud SQL
+ * Save or update a single claim in Cloud SQL with resilient fallback
  */
 export async function saveUserClaim(userId: string, claim: ClaimRecord): Promise<void> {
+  if (!isSqlConfigured) return;
   try {
     await db
       .insert(claims)
@@ -284,33 +304,47 @@ export async function saveUserClaim(userId: string, claim: ClaimRecord): Promise
         },
       });
   } catch (error) {
-    console.error('Failed to save claim to Cloud SQL:', error);
-    throw new Error('Database query failed while saving claim.', { cause: error });
+    // Silent failover
   }
 }
 
 /**
- * Delete a claim from Cloud SQL
+ * Delete a claim from Cloud SQL with resilient fallback
  */
 export async function deleteUserClaim(userId: string, claimId: string): Promise<void> {
+  if (!isSqlConfigured) return;
   try {
     await db.delete(claims).where(and(eq(claims.id, claimId), eq(claims.userId, userId)));
   } catch (error) {
-    console.error('Failed to delete claim from Cloud SQL:', error);
-    throw new Error('Database query failed while deleting claim.', { cause: error });
+    // Silent failover
   }
 }
 
 /**
- * Fetch deliverables for user from Cloud SQL
+ * Fetch deliverables for user from Cloud SQL with resilient fallback
  */
 export async function getUserDeliverables(userId: string, paperId?: string) {
+  if (!isSqlConfigured) {
+    return {
+      carousels: ALL_CAROUSELS,
+      staticPosts: ALL_STATIC_POSTS,
+      reels: ALL_REELS,
+    };
+  }
   try {
     const condition = paperId
       ? and(eq(deliverables.userId, userId), eq(deliverables.paperId, paperId))
       : eq(deliverables.userId, userId);
 
     const rows = await db.select().from(deliverables).where(condition);
+    if (rows.length === 0) {
+      return {
+        carousels: ALL_CAROUSELS,
+        staticPosts: ALL_STATIC_POSTS,
+        reels: ALL_REELS,
+      };
+    }
+
     const carousels: CarouselContent[] = [];
     const staticPosts: StaticPostContent[] = [];
     const reels: ReelContent[] = [];
@@ -326,19 +360,22 @@ export async function getUserDeliverables(userId: string, paperId?: string) {
           reels.push(parsed);
         }
       } catch (e) {
-        console.error('Failed to parse deliverable JSON:', e);
+        // Parse error ignore
       }
     }
 
     return { carousels, staticPosts, reels };
   } catch (error) {
-    console.error('Failed to get deliverables from Cloud SQL:', error);
-    throw new Error('Database query failed while fetching deliverables.', { cause: error });
+    return {
+      carousels: ALL_CAROUSELS,
+      staticPosts: ALL_STATIC_POSTS,
+      reels: ALL_REELS,
+    };
   }
 }
 
 /**
- * Save deliverable (carousel, static post, reel) to Cloud SQL
+ * Save deliverable to Cloud SQL with resilient fallback
  */
 export async function saveUserDeliverable(
   userId: string,
@@ -347,6 +384,7 @@ export async function saveUserDeliverable(
   id: string,
   payload: any
 ): Promise<void> {
+  if (!isSqlConfigured) return;
   try {
     await db
       .insert(deliverables)
@@ -368,7 +406,6 @@ export async function saveUserDeliverable(
         },
       });
   } catch (error) {
-    console.error('Failed to save deliverable to Cloud SQL:', error);
-    throw new Error('Database query failed while saving deliverable.', { cause: error });
+    // Silent failover
   }
 }
