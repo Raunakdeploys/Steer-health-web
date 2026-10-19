@@ -25,13 +25,13 @@
   body {
     background-color: var(--color-cream);
     color: var(--color-ink);
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
   }
 
-  h1, h2, h3, .font-serif {
+  h1, h2, h3, h4, .font-serif {
     font-family: 'Fraunces', Georgia, serif;
     font-optical-sizing: auto;
   }
@@ -51,16 +51,59 @@
 }
 
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: #F5EBDF;
 }
 ::-webkit-scrollbar-thumb {
-  background: #E6CBBD;
-  border-radius: 2px;
+  background: #D8BFB0;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #B58777;
 }
+
+/* Steer Global Design Utility Classes */
+.steer-card {
+  background-color: #FFFDF9;
+  border: 1px solid #E6CBBD;
+  box-shadow: 0 1px 2px rgba(53, 29, 29, 0.03);
+}
+
+.steer-card-interactive {
+  background-color: #FFFDF9;
+  border: 1px solid #E6CBBD;
+  box-shadow: 0 1px 2px rgba(53, 29, 29, 0.03);
+  transition: all 0.15s ease-in-out;
+}
+.steer-card-interactive:hover {
+  border-color: #C04E2A;
+  box-shadow: 0 4px 12px rgba(53, 29, 29, 0.06);
+}
+
+.steer-button-primary {
+  background-color: #661414;
+  color: #FFFDF9;
+  font-weight: 600;
+  border-radius: 2px;
+  transition: all 0.15s ease-in-out;
+}
+.steer-button-primary:hover {
+  background-color: #501010;
+}
+
+.steer-button-secondary {
+  background-color: #FFFDF9;
+  border: 1px solid #E6CBBD;
+  color: #351D1D;
+  font-weight: 500;
+  border-radius: 2px;
+  transition: all 0.15s ease-in-out;
+}
+.steer-button-secondary:hover {
+  background-color: #F8F2EB;
+  border-color: #B58777;
+}
+

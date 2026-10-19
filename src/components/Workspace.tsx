@@ -22,6 +22,7 @@ import {
   Calendar,
   Award,
   Zap,
+  Sparkles,
 } from 'lucide-react';
 
 interface WorkspaceProps {
@@ -76,32 +77,36 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
   if (papers.length === 0) {
     return (
-      <div className="max-w-3xl mx-auto py-16 px-4">
-        <div className="border border-[#DED2C5] bg-[#FFFDF9] p-10 md:p-14 text-center shadow-xs">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#786A61] mb-2 block font-semibold">
-            STEER EVIDENCE DESK
-          </span>
-          <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#391E1D] mb-3">
-            Start with the evidence.
-          </h1>
-          <p className="text-sm text-[#786A61] max-w-lg mx-auto mb-8 leading-relaxed">
-            Turn published research into clear health education, with every claim traceable to its source.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+      <div className="max-w-3xl mx-auto py-20 px-4">
+        <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-10 md:p-14 text-center shadow-xs rounded-xs space-y-6">
+          <div className="space-y-2">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#B58777] font-bold block">
+              STEER EVIDENCE STUDIO
+            </span>
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#351D1D] tracking-tight">
+              Start with the evidence.
+            </h1>
+            <p className="text-sm text-[#786A61] max-w-lg mx-auto leading-relaxed">
+              Transform published clinical research into evidence-backed Instagram Carousels, Statics, and AI Reels with 100% source traceability.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
               onClick={() => onNavigate('papers')}
-              className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold text-[#FFFDF9] bg-[#74191D] hover:bg-[#5b1317] rounded-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold text-[#FFFDF9] bg-[#661414] hover:bg-[#501010] rounded-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               <FileUp className="w-3.5 h-3.5" />
               <span>Upload a research paper</span>
             </button>
             <button
               onClick={onOpenDemo}
-              className="w-full sm:w-auto px-5 py-2.5 text-xs font-medium text-[#391E1D] bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] rounded-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 text-xs font-medium text-[#351D1D] bg-[#FFFDF9] hover:bg-[#F8F2EB] border border-[#E6CBBD] rounded-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Open example workflow</span>
-              <span className="text-[10px] font-mono text-[#BB4B2D] font-bold">
-                (DEMO DATA)
+              <Sparkles className="w-3.5 h-3.5 text-[#C04E2A]" />
+              <span>Load Metabolic Benchmark</span>
+              <span className="text-[10px] font-mono text-[#C04E2A] font-bold">
+                (DEMO)
               </span>
             </button>
           </div>
@@ -110,6 +115,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     );
   }
 
+  // Determine Primary Next Action with clear contextual logic
   let primaryAction = {
     label: 'Open Investigation Desk',
     onClick: () => onNavigate('desk'),
@@ -121,23 +127,24 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     };
   } else if (pendingClaims.length > 0) {
     primaryAction = {
-      label: `Review ${pendingClaims.length} Pending Claims in Desk`,
-      onClick: () => onNavigate('desk'),
+      label: `Review ${pendingClaims.length} Pending Claims in Gate`,
+      onClick: () => onNavigate('review'),
     };
   } else if (approvedClaims.length > 0) {
     primaryAction = {
-      label: 'Open Content Studio',
+      label: 'Open Content Studio →',
       onClick: () => onNavigate('studio'),
     };
   }
 
   return (
-    <div className="max-w-[1280px] mx-auto p-4 sm:p-6 md:p-8 space-y-8">
-      {/* 01. Compact Project Header */}
-      <section className="bg-[#FFFDF9] border border-[#DED2C5] p-5 sm:p-6 space-y-4 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-[#786A61] border-b border-[#DED2C5]/70 pb-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="font-semibold text-[#391E1D]">{activePaper?.journal || 'Journal'}</span>
+    <div className="max-w-[1360px] mx-auto p-4 sm:p-6 md:p-8 space-y-6">
+      {/* 01. Compact Research Document Masthead & Actions */}
+      <section className="bg-[#FFFDF9] border border-[#E6CBBD] p-5 sm:p-6 space-y-4 shadow-xs rounded-xs">
+        {/* Source Metadata Banner */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-[#786A61] border-b border-[#E6CBBD] pb-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="font-semibold text-[#351D1D]">{activePaper?.journal || 'Journal'}</span>
             <span>·</span>
             <span>{activePaper?.year}</span>
             <span>·</span>
@@ -145,24 +152,25 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             <span>·</span>
             <span>{activePaper?.total_pages} pages parsed</span>
             {activePaper?.is_demo && (
-              <span className="text-[#BB4B2D] font-bold border border-[#BB4B2D]/30 px-1.5 py-0.2 rounded-xs bg-[#BB4B2D]/5">
+              <span className="text-[#C04E2A] font-bold border border-[#C04E2A]/30 px-1.5 py-0.2 rounded-xs bg-[#C04E2A]/5">
                 DEMO BENCHMARK
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-[#786A61]">Status:</span>
-            <span className="text-[#416C49] font-medium flex items-center gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-[#786A61] font-semibold">STATUS:</span>
+            <span className="text-[#416C49] font-medium flex items-center gap-1.5 font-mono text-[11px]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#416C49]" />
               {currentPassages.length} passages extracted
             </span>
           </div>
         </div>
 
+        {/* Paper Title & Primary Next Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#391E1D] leading-snug">
+          <div className="space-y-1 max-w-3xl">
+            <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#351D1D] leading-snug tracking-tight">
               {activePaper?.title}
             </h2>
             <p className="text-xs text-[#786A61] font-mono">
@@ -170,86 +178,86 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               onClick={primaryAction.onClick}
-              className="px-4 py-2 text-xs font-semibold text-[#FFFDF9] bg-[#74191D] hover:bg-[#5b1317] rounded-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-4 py-2 text-xs font-semibold text-[#FFFDF9] bg-[#661414] hover:bg-[#501010] active:scale-98 rounded-xs transition-all flex items-center gap-2 cursor-pointer shadow-xs"
             >
               <span>{primaryAction.label}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => onNavigate('graph')}
-              className="px-3.5 py-2 text-xs font-medium text-[#391E1D] bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] rounded-xs transition-colors cursor-pointer"
+              onClick={() => onNavigate('provenance')}
+              className="px-3.5 py-2 text-xs font-medium text-[#351D1D] bg-[#FFFDF9] hover:bg-[#F8F2EB] border border-[#E6CBBD] rounded-xs transition-colors cursor-pointer"
             >
-              View Provenance Graph
+              Provenance Graph
             </button>
           </div>
         </div>
 
-        {/* Compact Metrics Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[#DED2C5]/70">
-          <div className="p-2.5 bg-[#F5EFE6]/40 border border-[#DED2C5]/60">
+        {/* Key Operational Metrics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[#E6CBBD]">
+          <div className="p-3 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] block">
               Extracted Claims
             </span>
-            <span className="text-base font-serif font-bold text-[#391E1D] mt-0.5 block">
+            <span className="text-xl font-serif font-bold text-[#351D1D] mt-0.5 block">
               {currentClaims.length}
             </span>
           </div>
 
-          <div className="p-2.5 bg-[#F5EFE6]/40 border border-[#DED2C5]/60">
+          <div className="p-3 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] block">
-              Human Approved
+              Doctor Approved
             </span>
-            <span className="text-base font-serif font-bold text-[#416C49] mt-0.5 block">
+            <span className="text-xl font-serif font-bold text-[#416C49] mt-0.5 block">
               {approvedClaims.length}
             </span>
           </div>
 
-          <div className="p-2.5 bg-[#F5EFE6]/40 border border-[#DED2C5]/60">
+          <div className="p-3 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] block">
               Needs Attention
             </span>
-            <span className="text-base font-serif font-bold text-[#BB4B2D] mt-0.5 block">
+            <span className="text-xl font-serif font-bold text-[#C04E2A] mt-0.5 block">
               {needsAttentionClaims.length}
             </span>
           </div>
 
-          <div className="p-2.5 bg-[#F5EFE6]/40 border border-[#DED2C5]/60">
+          <div className="p-3 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
             <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] block">
-              Content Studio
+              Deliverables
             </span>
-            <span className="text-xs font-mono text-[#391E1D] mt-1 block font-medium">
-              {carousel ? 'Carousel Ready' : 'Pending'}
+            <span className="text-xs font-mono text-[#351D1D] mt-1.5 block font-semibold">
+              {carousel ? 'Carousel Ready · Live' : 'Ready to Generate'}
             </span>
           </div>
         </div>
       </section>
 
-      {/* Hackathon PS2 Highlights & Pipeline Fast Paths */}
+      {/* 02. Two Key Fast Paths: Hackathon PS2 Packet & 7-Day Instagram Cadence */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Card 1: Hackathon Submission Packet */}
-        <div className="bg-[#661414] text-[#F5EBDF] p-5 border border-[#351D1D] flex flex-col justify-between space-y-3 shadow-xs">
-          <div className="space-y-1.5">
+        {/* Card 1: Hackathon Submission Center */}
+        <div className="bg-[#661414] text-[#F5EBDF] p-5 sm:p-6 border border-[#351D1D] flex flex-col justify-between space-y-4 shadow-xs rounded-xs">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="px-2 py-0.5 bg-[#C04E2A] text-[#F5EBDF] text-[9px] font-mono uppercase font-bold rounded-xs flex items-center gap-1">
-                <Award className="w-2.5 h-2.5" />
+                <Award className="w-3 h-3" />
                 HACKATHON SUBMISSION PACKET
               </span>
               <span className="text-[10px] font-mono text-[#E6CBBD]">Problem Statement 2</span>
             </div>
-            <h3 className="font-serif text-lg font-bold text-[#F5EBDF]">
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-[#F5EBDF] leading-snug">
               3 Finished Posts, Architecture & Pitch
             </h3>
             <p className="text-xs text-[#E6CBBD] leading-relaxed">
-              Inspect the GLP-1 carousel, South Asian 3 PM crash reel, and metabolic adaptation static post with measured effort benchmarks and a 2-minute Loom script.
+              Examine the GLP-1 carousel, South Asian 3 PM crash reel, and metabolic adaptation static post with measured effort benchmarks and a 2-minute Loom script.
             </p>
           </div>
 
           <button
             onClick={() => onNavigate('submission')}
-            className="w-full py-2 bg-[#F5EBDF] hover:bg-[#FFFDF9] text-[#661414] text-xs font-bold rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+            className="w-full py-2.5 bg-[#F5EBDF] hover:bg-[#FFFDF9] text-[#661414] text-xs font-bold rounded-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-xs"
           >
             <span>Open Hackathon Submission Center</span>
             <ArrowRight className="w-3.5 h-3.5 text-[#C04E2A]" />
@@ -257,26 +265,26 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
 
         {/* Card 2: 7-Day Instagram Content Calendar */}
-        <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-5 flex flex-col justify-between space-y-3 shadow-xs hover:border-[#C04E2A] transition-colors">
-          <div className="space-y-1.5">
+        <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-xs rounded-xs hover:border-[#C04E2A] transition-colors">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="px-2 py-0.5 bg-[#416C49]/10 text-[#416C49] text-[9px] font-mono uppercase font-bold rounded-xs flex items-center gap-1">
-                <Calendar className="w-2.5 h-2.5" />
+              <span className="px-2 py-0.5 bg-[#416C49]/15 text-[#416C49] text-[9px] font-mono uppercase font-bold rounded-xs flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
                 AUTOMATED WEEKLY ENGINE
               </span>
-              <span className="text-[10px] font-mono text-[#B58777]">7-Day Cadence</span>
+              <span className="text-[10px] font-mono text-[#786A61]">7-Day Cadence</span>
             </div>
-            <h3 className="font-serif text-lg font-bold text-[#351D1D]">
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-[#351D1D] leading-snug">
               Instagram Calendar & Canva Automation
             </h3>
             <p className="text-xs text-[#786A61] leading-relaxed">
-              Run the batch pipeline ("5 papers in, a week of content out"), export Canva Bulk Create CSVs, and schedule posts across prime Indian engagement windows.
+              Run the batch pipeline ("5 papers in, a week of content out"), export Canva Bulk Create CSVs, and inspect scheduled posts across prime Indian engagement windows.
             </p>
           </div>
 
           <button
             onClick={() => onNavigate('schedule')}
-            className="w-full py-2 bg-[#F8F2EB] hover:bg-[#E6CBBD]/40 border border-[#E6CBBD] text-[#351D1D] text-xs font-semibold rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            className="w-full py-2.5 bg-[#FAF6F0] hover:bg-[#F8F2EB] border border-[#E6CBBD] text-[#351D1D] text-xs font-semibold rounded-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             <Calendar className="w-3.5 h-3.5 text-[#C04E2A]" />
             <span>View 7-Day Instagram Schedule</span>
@@ -284,11 +292,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
       </section>
 
-      {/* 02. Editorial Work Queue */}
-      <section className="bg-[#FFFDF9] border border-[#DED2C5] p-5 sm:p-6 space-y-4 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DED2C5]/70 pb-3">
+      {/* 03. Editorial Work Queue */}
+      <section className="bg-[#FFFDF9] border border-[#E6CBBD] p-5 sm:p-6 space-y-4 shadow-xs rounded-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6CBBD] pb-3">
           <div>
-            <h3 className="text-base font-serif font-bold text-[#391E1D]">
+            <h3 className="text-base font-serif font-bold text-[#351D1D]">
               Editorial Work Queue
             </h3>
             <p className="text-xs text-[#786A61] mt-0.5">
@@ -296,13 +304,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-1 bg-[#F5EFE6] p-1 border border-[#DED2C5]">
+          <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 border border-[#E6CBBD] rounded-xs">
             <button
               onClick={() => setFilterState('ATTENTION')}
               className={`px-3 py-1 text-xs font-medium rounded-xs transition-colors cursor-pointer ${
                 filterState === 'ATTENTION'
-                  ? 'bg-[#FFFDF9] text-[#74191D] font-semibold shadow-xs'
-                  : 'text-[#786A61] hover:text-[#391E1D]'
+                  ? 'bg-[#FFFDF9] text-[#661414] font-bold shadow-xs'
+                  : 'text-[#786A61] hover:text-[#351D1D]'
               }`}
             >
               Needs Attention ({needsAttentionClaims.length})
@@ -311,8 +319,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               onClick={() => setFilterState('APPROVED')}
               className={`px-3 py-1 text-xs font-medium rounded-xs transition-colors cursor-pointer ${
                 filterState === 'APPROVED'
-                  ? 'bg-[#FFFDF9] text-[#74191D] font-semibold shadow-xs'
-                  : 'text-[#786A61] hover:text-[#391E1D]'
+                  ? 'bg-[#FFFDF9] text-[#661414] font-bold shadow-xs'
+                  : 'text-[#786A61] hover:text-[#351D1D]'
               }`}
             >
               Approved ({approvedClaims.length})
@@ -321,8 +329,8 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               onClick={() => setFilterState('ALL')}
               className={`px-3 py-1 text-xs font-medium rounded-xs transition-colors cursor-pointer ${
                 filterState === 'ALL'
-                  ? 'bg-[#FFFDF9] text-[#74191D] font-semibold shadow-xs'
-                  : 'text-[#786A61] hover:text-[#391E1D]'
+                  ? 'bg-[#FFFDF9] text-[#661414] font-bold shadow-xs'
+                  : 'text-[#786A61] hover:text-[#351D1D]'
               }`}
             >
               All ({currentClaims.length})
@@ -330,11 +338,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           </div>
         </div>
 
-        {/* Claim Items */}
+        {/* Claim Items List */}
         <div className="space-y-2.5">
           {displayedClaims.length === 0 ? (
-            <div className="py-10 text-center text-xs text-[#786A61] font-mono">
-              No claims in this queue. All items have been successfully reviewed.
+            <div className="py-12 text-center text-xs text-[#786A61] font-mono bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
+              No claims in this queue. All items have been reviewed or approved.
             </div>
           ) : (
             displayedClaims.slice(0, 6).map((claim) => {
@@ -348,12 +356,12 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                     if (onSelectClaimForReview) onSelectClaimForReview(claim);
                     onNavigate('desk');
                   }}
-                  className={`p-3.5 border transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
+                  className={`p-3.5 border rounded-xs transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
                     isFlagged
-                      ? 'bg-[#BB4B2D]/5 border-[#BB4B2D]/40 hover:border-[#BB4B2D]'
+                      ? 'bg-[#C04E2A]/5 border-[#C04E2A]/30 hover:border-[#C04E2A]'
                       : isApproved
-                      ? 'bg-[#416C49]/5 border-[#416C49]/30 hover:border-[#416C49]'
-                      : 'bg-[#F5EFE6]/30 border-[#DED2C5] hover:border-[#74191D]'
+                      ? 'bg-[#416C49]/5 border-[#416C49]/25 hover:border-[#416C49]'
+                      : 'bg-[#FAF6F0]/60 border-[#E6CBBD] hover:border-[#661414]'
                   }`}
                 >
                   <div className="space-y-1 flex-1 min-w-0">
@@ -361,10 +369,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                       <span
                         className={`px-1.5 py-0.2 rounded-xs font-bold uppercase ${
                           isFlagged
-                            ? 'bg-[#BB4B2D]/15 text-[#BB4B2D]'
+                            ? 'bg-[#C04E2A]/15 text-[#C04E2A]'
                             : isApproved
                             ? 'bg-[#416C49]/15 text-[#416C49]'
-                            : 'bg-[#DED2C5] text-[#391E1D]'
+                            : 'bg-[#E6CBBD]/60 text-[#351D1D]'
                         }`}
                       >
                         {claim.review_status.replace(/_/g, ' ')}
@@ -374,7 +382,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                       <span className="text-[#786A61]">Design: {claim.study_design}</span>
                     </div>
 
-                    <p className="font-serif text-xs font-semibold text-[#391E1D] leading-snug">
+                    <p className="font-serif text-xs font-semibold text-[#351D1D] leading-snug">
                       {claim.claim_text}
                     </p>
 
@@ -392,7 +400,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                         if (onSelectClaimForReview) onSelectClaimForReview(claim);
                         onNavigate('desk');
                       }}
-                      className="px-3 py-1.5 text-xs font-medium text-[#74191D] hover:bg-[#74191D] hover:text-[#FFFDF9] border border-[#74191D]/30 rounded-xs transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1.5 text-xs font-semibold text-[#661414] hover:bg-[#661414] hover:text-[#FFFDF9] border border-[#661414]/30 rounded-xs transition-all flex items-center gap-1 cursor-pointer"
                     >
                       <span>Investigate</span>
                       <ArrowRight className="w-3 h-3" />

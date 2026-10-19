@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Printer,
   Quote,
+  BookOpen,
 } from 'lucide-react';
 
 interface EvidenceReportViewProps {
@@ -39,8 +40,14 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
 }) => {
   if (!activePaper) {
     return (
-      <div className="max-w-3xl mx-auto py-16 text-center text-[#786A61]">
-        Please ingest a scientific paper to generate an Evidence Audit Report.
+      <div className="max-w-2xl mx-auto py-20 px-4 text-center space-y-4">
+        <div className="w-14 h-14 mx-auto rounded-full bg-[#E6CBBD]/40 flex items-center justify-center text-[#661414]">
+          <BookOpen className="w-7 h-7" />
+        </div>
+        <h3 className="font-serif text-xl font-bold text-[#351D1D]">No Paper Selected for Report</h3>
+        <p className="text-xs text-[#786A61] max-w-md mx-auto leading-relaxed">
+          Please select or ingest a scientific paper to generate a clinical traceability and evidence audit report.
+        </p>
       </div>
     );
   }
@@ -86,14 +93,19 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
   };
 
   return (
-    <div className="max-w-[1360px] mx-auto p-4 sm:p-6 md:p-8 space-y-6">
+    <div className="max-w-[1400px] mx-auto p-4 sm:p-6 space-y-6">
       {/* 01. Desk Header & Print Actions */}
-      <div className="bg-[#FFFDF9] border border-[#DED2C5] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-lg font-bold text-[#391E1D]">
-            Evidence Traceability Report
-          </h2>
-          <p className="text-xs text-[#786A61]">
+      <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xs shadow-xs">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-[#661414] text-[#F5EBDF] text-[10px] font-mono font-bold uppercase rounded-xs">
+              REPORT EXPORT
+            </span>
+            <h2 className="font-serif text-lg font-bold text-[#351D1D] tracking-tight">
+              Evidence Traceability Report
+            </h2>
+          </div>
+          <p className="text-xs text-[#786A61] leading-relaxed">
             Complete audit trail connecting published text, page citations, validation findings, and approved assets.
           </p>
         </div>
@@ -101,7 +113,7 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 text-xs font-medium text-[#391E1D] bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] rounded-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+            className="px-3.5 py-2 text-xs font-medium text-[#351D1D] bg-[#FFFDF9] hover:bg-[#F8F2EB] border border-[#E6CBBD] rounded-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
           >
             <Printer className="w-3.5 h-3.5 text-[#786A61]" />
             <span>Print Report</span>
@@ -109,25 +121,25 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
 
           <button
             onClick={handleDownloadReport}
-            className="px-4 py-1.5 text-xs font-semibold text-[#FFFDF9] bg-[#74191D] hover:bg-[#5b1317] rounded-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+            className="px-4 py-2 text-xs font-semibold text-[#FFFDF9] bg-[#661414] hover:bg-[#501010] rounded-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-[#FFFDF9]" />
             <span>Export JSON Audit Package</span>
           </button>
         </div>
       </div>
 
       {/* 02. Report Body Document Frame */}
-      <div className="border border-[#DED2C5] bg-[#FFFDF9] p-6 sm:p-10 space-y-8">
+      <div className="border border-[#E6CBBD] bg-[#FFFDF9] p-6 sm:p-10 space-y-8 rounded-xs shadow-xs">
         {/* Document Masthead */}
-        <div className="pb-6 border-b border-[#DED2C5] flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div className="space-y-1 max-w-3xl">
+        <div className="pb-6 border-b border-[#E6CBBD] flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="space-y-1.5 max-w-3xl">
             <div className="flex items-center gap-2 font-mono text-[10px] text-[#786A61]">
               <span>AUDIT ID: {activePaper.paper_id}</span>
               <span>·</span>
               <span>DATE: {new Date().toLocaleDateString()}</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#391E1D] leading-snug">
+            <h1 className="text-xl sm:text-2xl font-serif font-bold text-[#351D1D] leading-snug">
               {activePaper.title}
             </h1>
             <p className="text-xs text-[#786A61]">
@@ -139,10 +151,10 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
             <span
               className={`inline-block text-[10px] font-mono font-bold px-2.5 py-1 rounded-xs uppercase ${
                 overallStatus === 'VERIFIED_READY'
-                  ? 'bg-[#416C49]/10 text-[#416C49] border border-[#416C49]/30'
+                  ? 'bg-[#416C49]/15 text-[#416C49] border border-[#416C49]/30'
                   : overallStatus === 'CONTAINS_BLOCKERS'
-                  ? 'bg-[#74191D]/10 text-[#74191D] border border-[#74191D]/30'
-                  : 'bg-[#BB4B2D]/10 text-[#BB4B2D] border border-[#BB4B2D]/30'
+                  ? 'bg-[#661414]/15 text-[#661414] border border-[#661414]/30'
+                  : 'bg-[#C04E2A]/15 text-[#C04E2A] border border-[#C04E2A]/30'
               }`}
             >
               STATUS: {overallStatus.replace(/_/g, ' ')}
@@ -152,21 +164,21 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
 
         {/* Audit Metrics Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-          <div className="p-3 bg-[#F5EFE6]/40 border border-[#DED2C5]">
-            <span className="text-[9px] uppercase text-[#786A61] block">Parsed Passages</span>
-            <span className="text-lg font-bold text-[#391E1D] block mt-0.5">{paperPassages.length}</span>
+          <div className="p-3.5 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
+            <span className="text-[9px] uppercase text-[#786A61] font-bold block">Parsed Passages</span>
+            <span className="text-xl font-bold text-[#351D1D] block mt-1">{paperPassages.length}</span>
           </div>
-          <div className="p-3 bg-[#F5EFE6]/40 border border-[#DED2C5]">
-            <span className="text-[9px] uppercase text-[#786A61] block">Total Extracted Claims</span>
-            <span className="text-lg font-bold text-[#391E1D] block mt-0.5">{paperClaims.length}</span>
+          <div className="p-3.5 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
+            <span className="text-[9px] uppercase text-[#786A61] font-bold block">Total Extracted Claims</span>
+            <span className="text-xl font-bold text-[#351D1D] block mt-1">{paperClaims.length}</span>
           </div>
-          <div className="p-3 bg-[#F5EFE6]/40 border border-[#DED2C5]">
-            <span className="text-[9px] uppercase text-[#416C49] block">Human Approved</span>
-            <span className="text-lg font-bold text-[#416C49] block mt-0.5">{approvedClaims.length}</span>
+          <div className="p-3.5 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
+            <span className="text-[9px] uppercase text-[#416C49] font-bold block">Human Approved</span>
+            <span className="text-xl font-bold text-[#416C49] block mt-1">{approvedClaims.length}</span>
           </div>
-          <div className="p-3 bg-[#F5EFE6]/40 border border-[#DED2C5]">
-            <span className="text-[9px] uppercase text-[#BB4B2D] block">Flagged / Blocked</span>
-            <span className="text-lg font-bold text-[#BB4B2D] block mt-0.5">
+          <div className="p-3.5 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs">
+            <span className="text-[9px] uppercase text-[#C04E2A] font-bold block">Flagged / Blocked</span>
+            <span className="text-xl font-bold text-[#C04E2A] block mt-1">
               {blockedClaims.length + flaggedClaims.length}
             </span>
           </div>
@@ -174,7 +186,7 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
 
         {/* Claims Audit Table */}
         <div className="space-y-4">
-          <h3 className="font-serif font-bold text-base text-[#391E1D] border-b border-[#DED2C5] pb-2">
+          <h3 className="font-serif font-bold text-base text-[#351D1D] border-b border-[#E6CBBD] pb-2">
             Claim-by-Claim Verification Ledger
           </h3>
 
@@ -185,20 +197,20 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
               return (
                 <div
                   key={claim.claim_id}
-                  className="border border-[#DED2C5] p-4 space-y-3 bg-[#FFFDF9]"
+                  className="border border-[#E6CBBD] p-4 sm:p-5 space-y-3 bg-[#FFFDF9] rounded-xs shadow-xs"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#74191D]">CLAIM #{idx + 1}</span>
+                      <span className="font-bold text-[#661414]">CLAIM #{idx + 1}</span>
                       <span
-                        className={`text-[9px] px-1.5 py-0.2 rounded-xs font-semibold ${
+                        className={`text-[9px] px-2 py-0.5 rounded-xs font-bold uppercase ${
                           claim.review_status === 'HUMAN_APPROVED'
                             ? 'bg-[#416C49]/15 text-[#416C49]'
                             : claim.review_status === 'BLOCKED'
-                            ? 'bg-[#74191D]/15 text-[#74191D]'
+                            ? 'bg-[#661414]/15 text-[#661414]'
                             : claim.review_status === 'FLAGGED'
-                            ? 'bg-[#BB4B2D]/15 text-[#BB4B2D]'
-                            : 'bg-[#DED2C5] text-[#391E1D]'
+                            ? 'bg-[#C04E2A]/15 text-[#C04E2A]'
+                            : 'bg-[#E6CBBD]/60 text-[#351D1D]'
                         }`}
                       >
                         {claim.review_status}
@@ -210,35 +222,35 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
                     </span>
                   </div>
 
-                  <p className="font-serif text-sm font-semibold text-[#391E1D] leading-snug">
+                  <p className="font-serif text-sm font-semibold text-[#351D1D] leading-snug">
                     {claim.claim_text}
                   </p>
 
-                  <div className="bg-[#F7E9DE]/60 p-3 text-xs border border-[#DED2C5] space-y-1">
-                    <span className="text-[9px] font-mono uppercase text-[#BB4B2D] font-bold block">
+                  <div className="bg-[#FAF6F0] p-3 text-xs border-l-3 border-[#661414] space-y-1 rounded-r-xs">
+                    <span className="text-[9px] font-mono uppercase text-[#C04E2A] font-bold block">
                       VERBATIM QUOTE (Page {linkedP[0]?.pdf_page_index || 'N/A'})
                     </span>
-                    <blockquote className="italic font-serif text-[#391E1D] leading-relaxed">
+                    <blockquote className="italic font-serif text-[#351D1D] leading-relaxed">
                       "{claim.exact_supporting_quote}"
                     </blockquote>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-[#F5EFE6]/40 p-2.5 border border-[#DED2C5] font-mono">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-[#FAF6F0] p-3 border border-[#E6CBBD] font-mono rounded-xs">
                     <div>
-                      <span className="text-[9px] text-[#786A61] block">POPULATION:</span>
-                      <span className="text-[#391E1D] font-medium block truncate">{claim.population}</span>
+                      <span className="text-[9px] text-[#786A61] font-bold block">POPULATION:</span>
+                      <span className="text-[#351D1D] font-medium block truncate">{claim.population}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-[#786A61] block">DESIGN:</span>
-                      <span className="text-[#391E1D] font-medium block truncate">{claim.study_design}</span>
+                      <span className="text-[9px] text-[#786A61] font-bold block">DESIGN:</span>
+                      <span className="text-[#351D1D] font-medium block truncate">{claim.study_design}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-[#786A61] block">OUTCOME:</span>
-                      <span className="text-[#391E1D] font-medium block truncate">{claim.outcome || 'General'}</span>
+                      <span className="text-[9px] text-[#786A61] font-bold block">OUTCOME:</span>
+                      <span className="text-[#351D1D] font-medium block truncate">{claim.outcome || 'General'}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-[#786A61] block">METRICS:</span>
-                      <span className="text-[#391E1D] font-medium block truncate">{claim.numbers_and_units}</span>
+                      <span className="text-[9px] text-[#786A61] font-bold block">METRICS:</span>
+                      <span className="text-[#351D1D] font-medium block truncate">{claim.numbers_and_units}</span>
                     </div>
                   </div>
                 </div>
@@ -248,7 +260,7 @@ export const EvidenceReportView: React.FC<EvidenceReportViewProps> = ({
         </div>
 
         {/* Disclaimer */}
-        <div className="pt-4 border-t border-[#DED2C5] text-[11px] text-[#786A61] leading-relaxed font-mono">
+        <div className="pt-4 border-t border-[#E6CBBD] text-[11px] text-[#786A61] leading-relaxed font-mono">
           {reportData.disclaimer}
         </div>
       </div>

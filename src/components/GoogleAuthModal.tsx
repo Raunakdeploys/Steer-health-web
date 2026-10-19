@@ -157,26 +157,26 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
   const displayedError = localError || authError;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 animate-in fade-in zoom-in-95 duration-150 font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#351D1D]/60 backdrop-blur-xs">
+      <div className="relative w-full max-w-md bg-[#FFFDF9] rounded-xs shadow-2xl overflow-hidden border border-[#E6CBBD] animate-in fade-in zoom-in-95 duration-150">
         {/* Header Bar */}
-        <div className="px-6 pt-5 pb-3.5 flex items-center justify-between border-b border-gray-100 bg-white">
+        <div className="px-6 pt-5 pb-4 flex items-center justify-between border-b border-[#E6CBBD] bg-[#FAF6F0]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#661414] text-[#F5EBDF] flex items-center justify-center font-serif font-bold text-base shadow-xs">
+            <div className="w-8 h-8 rounded-xs bg-[#661414] text-[#F5EBDF] flex items-center justify-center font-serif italic font-bold text-base shadow-xs">
               s
             </div>
             <div>
-              <h2 className="text-sm font-bold text-gray-900 leading-tight">steer Evidence Studio</h2>
-              <p className="text-[11px] text-gray-500">Clinical Research Identity & Database</p>
+              <h2 className="text-sm font-serif font-bold text-[#351D1D] leading-tight">steer Evidence Studio</h2>
+              <p className="text-[11px] font-mono text-[#786A61]">Clinical Research Identity & Database</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+            className="text-[#786A61] hover:text-[#351D1D] p-1.5 rounded-xs hover:bg-[#E6CBBD]/40 transition-colors cursor-pointer"
             title="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -186,19 +186,19 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
             /* 1. Signed-in Profile View */
             <div className="space-y-4">
               <div className="text-center space-y-1.5">
-                <div className="w-16 h-16 mx-auto rounded-full bg-[#661414] text-[#F5EBDF] flex items-center justify-center text-2xl font-bold font-serif shadow-md border-2 border-white overflow-hidden">
+                <div className="w-16 h-16 mx-auto rounded-full bg-[#661414] text-[#F5EBDF] flex items-center justify-center text-2xl font-bold font-serif shadow-md border-2 border-[#FFFDF9] overflow-hidden">
                   {user.photoURL ? (
                     <img src={user.photoURL} alt={user.displayName || 'User'} className="w-full h-full object-cover" />
                   ) : (
                     (user.displayName || user.email || 'U')[0].toUpperCase()
                   )}
                 </div>
-                <h3 className="text-base font-bold text-gray-900 pt-1">
+                <h3 className="text-base font-serif font-bold text-[#351D1D] pt-1">
                   {user.displayName || 'Clinical Reviewer'}
                 </h3>
-                <p className="text-xs text-gray-500 font-mono truncate">{user.email || 'Anonymous Guest'}</p>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-medium border border-emerald-200 mt-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <p className="text-xs text-[#786A61] font-mono truncate">{user.email || 'Anonymous Guest'}</p>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-xs bg-[#416C49]/15 text-[#416C49] text-[11px] font-bold border border-[#416C49]/30 mt-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#416C49]" />
                   <span>
                     {user.provider === 'google-gis'
                       ? 'Google Identity Verified'
@@ -212,18 +212,18 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
               </div>
 
               {/* Database Provenance Box */}
-              <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-gray-700">
+              <div className="p-3.5 bg-[#FAF6F0] rounded-xs border border-[#E6CBBD] space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-[#786A61]">
                   <Database className="w-4 h-4 text-[#C04E2A] shrink-0" />
                   <span className="truncate">
                     User Path:{' '}
-                    <strong className="font-mono text-gray-900">
+                    <strong className="font-mono text-[#351D1D]">
                       users/{user.uid}/
                     </strong>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="flex items-center gap-2 text-[#416C49] font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-[#416C49] shrink-0" />
                   <span>Per-user Firestore rules active ({sqlSyncStatus})</span>
                 </div>
               </div>
@@ -231,7 +231,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
               <div className="pt-2 flex flex-col gap-2">
                 <button
                   onClick={onClose}
-                  className="w-full py-2.5 px-4 bg-[#661414] hover:bg-[#521010] text-[#F5EBDF] text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer text-center"
+                  className="w-full py-2.5 px-4 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs shadow-xs transition-colors cursor-pointer text-center"
                 >
                   Continue to Evidence Studio
                 </button>
@@ -239,9 +239,9 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                   onClick={async () => {
                     await signOutUser();
                   }}
-                  className="w-full py-2 px-4 border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full py-2 px-4 border border-[#E6CBBD] bg-[#FFFDF9] hover:bg-[#FAF6F0] text-[#351D1D] text-xs font-medium rounded-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-3.5 h-3.5 text-[#786A61]" />
                   <span>Switch account / Sign out</span>
                 </button>
               </div>
@@ -250,17 +250,17 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
             /* 2. Authentication Tabs & Forms */
             <div className="space-y-4">
               {/* Tabs Switcher */}
-              <div className="flex rounded-lg bg-gray-100 p-1 text-xs font-medium text-gray-600">
+              <div className="flex rounded-xs bg-[#FAF6F0] p-1 text-xs font-medium border border-[#E6CBBD]">
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('google');
                     setLocalError(null);
                   }}
-                  className={`flex-1 py-1.5 rounded-md text-center transition-all cursor-pointer ${
+                  className={`flex-1 py-1.5 rounded-xs text-center transition-all cursor-pointer ${
                     activeTab === 'google'
-                      ? 'bg-white text-gray-900 font-semibold shadow-xs'
-                      : 'hover:text-gray-900'
+                      ? 'bg-[#FFFDF9] text-[#661414] font-bold shadow-xs'
+                      : 'text-[#786A61] hover:text-[#351D1D]'
                   }`}
                 >
                   Google GIS
@@ -271,10 +271,10 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                     setActiveTab('email');
                     setLocalError(null);
                   }}
-                  className={`flex-1 py-1.5 rounded-md text-center transition-all cursor-pointer ${
+                  className={`flex-1 py-1.5 rounded-xs text-center transition-all cursor-pointer ${
                     activeTab === 'email'
-                      ? 'bg-white text-gray-900 font-semibold shadow-xs'
-                      : 'hover:text-gray-900'
+                      ? 'bg-[#FFFDF9] text-[#661414] font-bold shadow-xs'
+                      : 'text-[#786A61] hover:text-[#351D1D]'
                   }`}
                 >
                   Email
@@ -285,10 +285,10 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                     setActiveTab('guest');
                     setLocalError(null);
                   }}
-                  className={`flex-1 py-1.5 rounded-md text-center transition-all cursor-pointer ${
+                  className={`flex-1 py-1.5 rounded-xs text-center transition-all cursor-pointer ${
                     activeTab === 'guest'
-                      ? 'bg-white text-gray-900 font-semibold shadow-xs'
-                      : 'hover:text-gray-900'
+                      ? 'bg-[#FFFDF9] text-[#661414] font-bold shadow-xs'
+                      : 'text-[#786A61] hover:text-[#351D1D]'
                   }`}
                 >
                   1-Click Guest
@@ -297,8 +297,8 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
 
               {/* Error Message Alert */}
               {displayedError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div className="p-3 bg-[#661414]/10 border border-[#661414]/30 rounded-xs text-xs text-[#661414] flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-[#661414] shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <p>{displayedError}</p>
                   </div>
@@ -309,10 +309,10 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
               {activeTab === 'google' && (
                 <div className="space-y-3.5 pt-1">
                   <div className="text-center space-y-1">
-                    <h3 className="text-sm font-semibold text-gray-900">
+                    <h3 className="text-sm font-serif font-bold text-[#351D1D]">
                       Sign in with Google Identity
                     </h3>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#786A61]">
                       Iframe COOP-resilient dual-mode Google verification
                     </p>
                   </div>
@@ -333,7 +333,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                       }
                     }}
                     disabled={isSubmitting || authLoading}
-                    className="w-full py-2.5 px-4 bg-[#661414] hover:bg-[#521010] text-[#F5EBDF] text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 px-4 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                       <path
@@ -363,18 +363,18 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
 
                   {/* Secondary Popup Fallback Button */}
                   <div className="relative flex py-1 items-center">
-                    <div className="flex-grow border-t border-gray-200"></div>
-                    <span className="flex-shrink mx-2 text-[10px] uppercase tracking-wider text-gray-400 font-medium">
+                    <div className="flex-grow border-t border-[#E6CBBD]"></div>
+                    <span className="flex-shrink mx-2 text-[10px] uppercase tracking-wider text-[#786A61] font-mono">
                       or browser popup
                     </span>
-                    <div className="flex-grow border-t border-gray-200"></div>
+                    <div className="flex-grow border-t border-[#E6CBBD]"></div>
                   </div>
 
                   <button
                     type="button"
                     onClick={handlePopupClick}
                     disabled={isSubmitting || authLoading}
-                    className="w-full py-2.5 px-4 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 shadow-2xs transition-colors flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 px-4 bg-[#FFFDF9] hover:bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs text-xs font-semibold text-[#351D1D] shadow-2xs transition-colors flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
                   >
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                       <path
@@ -397,8 +397,8 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                     <span>Launch Google Account Chooser</span>
                   </button>
 
-                  <div className="p-2.5 bg-blue-50/60 border border-blue-100 rounded-lg text-[11px] text-blue-900 flex items-start gap-1.5">
-                    <Globe className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="p-2.5 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs text-[11px] text-[#351D1D] flex items-start gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-[#C04E2A] shrink-0 mt-0.5" />
                     <p className="leading-relaxed">
                       Instant verified login for topmostproffesor234@gmail.com ensures zero redirect URI mismatches on Render or production deployments.
                     </p>
@@ -410,13 +410,13 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
               {activeTab === 'email' && (
                 <form onSubmit={handleEmailSubmit} className="space-y-3 pt-1">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-semibold text-gray-800">
+                    <span className="text-xs font-serif font-bold text-[#351D1D]">
                       {isSignUp ? 'Create your reviewer account' : 'Sign in with email'}
                     </span>
                     <button
                       type="button"
                       onClick={() => setIsSignUp(!isSignUp)}
-                      className="text-[11px] text-[#C04E2A] hover:underline font-medium cursor-pointer"
+                      className="text-[11px] text-[#661414] hover:underline font-bold cursor-pointer font-mono"
                     >
                       {isSignUp ? 'Have an account? Sign In' : 'New? Create account'}
                     </button>
@@ -424,46 +424,46 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
 
                   {isSignUp && (
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700 mb-1">Full Name</label>
+                      <label className="block text-[10px] font-mono uppercase text-[#786A61] font-bold mb-1">Full Name</label>
                       <div className="relative">
-                        <User className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                        <User className="w-4 h-4 text-[#786A61] absolute left-3 top-2.5" />
                         <input
                           type="text"
                           value={displayName}
                           onChange={(e) => setDisplayName(e.target.value)}
                           placeholder="Dr. Raunak Roy"
-                          className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-hidden focus:border-[#C04E2A] focus:ring-1 focus:ring-[#C04E2A]"
+                          className="w-full pl-9 pr-3 py-2 text-xs bg-[#FAF6F0] border border-[#E6CBBD] text-[#351D1D] rounded-xs focus:outline-hidden focus:border-[#661414]"
                         />
                       </div>
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-1">Email address</label>
+                    <label className="block text-[10px] font-mono uppercase text-[#786A61] font-bold mb-1">Email address</label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                      <Mail className="w-4 h-4 text-[#786A61] absolute left-3 top-2.5" />
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="topmostproffesor234@gmail.com"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-hidden focus:border-[#C04E2A] focus:ring-1 focus:ring-[#C04E2A]"
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-[#FAF6F0] border border-[#E6CBBD] text-[#351D1D] rounded-xs focus:outline-hidden focus:border-[#661414]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-1">Password</label>
+                    <label className="block text-[10px] font-mono uppercase text-[#786A61] font-bold mb-1">Password</label>
                     <div className="relative">
-                      <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                      <Lock className="w-4 h-4 text-[#786A61] absolute left-3 top-2.5" />
                       <input
                         type="password"
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-hidden focus:border-[#C04E2A] focus:ring-1 focus:ring-[#C04E2A]"
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-[#FAF6F0] border border-[#E6CBBD] text-[#351D1D] rounded-xs focus:outline-hidden focus:border-[#661414]"
                       />
                     </div>
                   </div>
@@ -471,7 +471,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmitting || authLoading || !email.trim() || !password}
-                    className="w-full py-2.5 px-4 bg-[#661414] hover:bg-[#521010] text-[#F5EBDF] text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 mt-2"
+                    className="w-full py-2.5 px-4 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 mt-2"
                   >
                     {isSubmitting ? (
                       <>
@@ -491,12 +491,12 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
               {/* TAB 3: 1-Click Guest / Demo Mode */}
               {activeTab === 'guest' && (
                 <div className="space-y-4 pt-1">
-                  <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
-                    <div className="flex items-center gap-2 text-emerald-900 font-semibold text-xs">
-                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <div className="p-4 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs space-y-2">
+                    <div className="flex items-center gap-2 text-[#661414] font-bold text-xs">
+                      <Sparkles className="w-4 h-4 text-[#C04E2A]" />
                       <span>Instant 1-Click Demo Sandbox</span>
                     </div>
-                    <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    <p className="text-[11px] text-[#786A61] leading-relaxed">
                       Explore the studio immediately with pre-loaded metabolic clinical trials, claim ledgers, and social carousels without entering credentials.
                     </p>
                   </div>
@@ -505,7 +505,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                     type="button"
                     onClick={handleGuestClick}
                     disabled={isSubmitting || authLoading}
-                    className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-2.5 px-4 bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] text-xs font-semibold rounded-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
                       <>
@@ -523,12 +523,12 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
               )}
 
               {/* Footer Notice */}
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="pt-3 border-t border-[#E6CBBD] flex items-center justify-between text-[11px] text-[#786A61]">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#416C49]" />
                   <span>Isolated User Workspace</span>
                 </span>
-                <span className="font-mono text-[10px] text-gray-400">
+                <span className="font-mono text-[10px] text-[#786A61]">
                   Dual-Auth Active
                 </span>
               </div>

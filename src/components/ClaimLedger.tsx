@@ -3,7 +3,6 @@ import {
   ClaimRecord,
   EvidencePassage,
   PaperRecord,
-  ValidationFinding,
 } from '../types';
 import { runValidationEngine } from '../utils/validationEngine';
 import {
@@ -17,7 +16,6 @@ import {
   RefreshCw,
   Check,
   X,
-  FileText,
   ArrowRight,
   ShieldCheck,
   Quote,
@@ -47,8 +45,6 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   onUpdateClaim,
   onAddClaim,
   onDeleteClaim,
-  onBatchAddClaims,
-  onBatchUpdateClaims,
   onViewSourcePassage,
   onNavigateToStudio,
   selectedClaimId: externalSelectedClaimId,
@@ -78,7 +74,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
 
   if (!activePaper) {
     return (
-      <div className="max-w-3xl mx-auto py-16 text-center text-[#786A61]">
+      <div className="max-w-3xl mx-auto py-20 text-center text-[#786A61]">
         Please ingest a scientific paper to inspect its claim ledger.
       </div>
     );
@@ -124,7 +120,6 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   const approvedCount = validatedClaims.filter((c) => c.review_status === 'HUMAN_APPROVED').length;
   const blockedCount = validatedClaims.filter((c) => c.review_status === 'BLOCKED').length;
   const flaggedCount = validatedClaims.filter((c) => c.review_status === 'FLAGGED').length;
-  const pendingCount = validatedClaims.filter((c) => c.review_status === 'READY_FOR_HUMAN_REVIEW').length;
 
   const handleSelectClaimRecord = (claim: ClaimRecord) => {
     setInternalSelectedClaimId(claim.claim_id);
@@ -159,33 +154,29 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to extract claims from server.');
+        throw new Error(data.error || 'Failed to extract claims.');
       }
 
       if (data.claims && Array.isArray(data.claims)) {
-        onBatchAddClaims(data.claims);
-        if (data.claims.length > 0) {
-          handleSelectClaimRecord(data.claims[0]);
+        for (const claim of data.claims) {
+          onAddClaim(claim);
         }
+        setAuditSummary(`Successfully extracted ${data.claims.length} structured clinical claims.`);
+        setTimeout(() => setAuditSummary(null), 5000);
       }
     } catch (err: any) {
       console.error(err);
-      setAiError(err.message || 'Error communicating with claim extraction model.');
+      setAiError(err.message || 'AI claim generation encountered an error.');
     } finally {
       setIsGeneratingAiClaims(false);
     }
   };
 
-  // Automated Claim Audit via Gemini Flash Clinical Engine
+  // Full Clinical Auto-Audit with Gemini
   const handleAutoAuditClaimsViaGemini = async () => {
-    if (paperClaims.length === 0) {
-      alert('No claims found for this paper to audit.');
-      return;
-    }
-
+    if (paperClaims.length === 0) return;
     setIsAuditingClaims(true);
     setAiError(null);
-    setAuditSummary(null);
 
     try {
       const response = await fetch('/api/audit-claims', {
@@ -204,25 +195,17 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
       }
 
       if (data.audited_claims && Array.isArray(data.audited_claims)) {
-        if (onBatchUpdateClaims) {
-          onBatchUpdateClaims(data.audited_claims);
-        } else {
-          data.audited_claims.forEach((c: ClaimRecord) => onUpdateClaim(c, false));
+        for (const audited of data.audited_claims) {
+          onUpdateClaim(audited, false);
         }
-
-        const approved = data.audited_claims.filter(
-          (c: any) => c.review_status === 'HUMAN_APPROVED'
-        ).length;
-        const flagged = data.audited_claims.filter(
-          (c: any) => c.review_status === 'FLAGGED_CONCERN' || c.review_status === 'FLAGGED'
-        ).length;
         setAuditSummary(
-          `Gemini Flash Clinical Audit Complete: ${approved} claim(s) doctor-approved, ${flagged} claim(s) flagged for editorial review.`
+          `Auto-Audit Complete: Audited ${data.audited_claims.length} claims against verbatim trial text with Gemini Flash.`
         );
+        setTimeout(() => setAuditSummary(null), 6000);
       }
     } catch (err: any) {
       console.error(err);
-      setAiError(err.message || 'Auto-audit communication error with Gemini Flash.');
+      setAiError(err.message || 'Auto-audit encountered an error.');
     } finally {
       setIsAuditingClaims(false);
     }
@@ -231,6 +214,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   const handleAuditSingleClaimViaGemini = async (claim: ClaimRecord) => {
     setIsAuditingClaims(true);
     setAiError(null);
+
     try {
       const response = await fetch('/api/audit-claims', {
         method: 'POST',
@@ -288,7 +272,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
       updated_at: new Date().toISOString(),
     };
     onUpdateClaim(updated, wasApproved);
-    setAuditSummary('Claim flagged with caveat note. Resuming content generation without this claim...');
+    setAuditSummary('Claim flagged with caveat note.');
     setTimeout(() => setAuditSummary(null), 5000);
     if (onResumeContentGeneration && wasApproved) {
       onResumeContentGeneration();
@@ -307,7 +291,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
         };
         onUpdateClaim(updated, claim.review_status === 'HUMAN_APPROVED');
       }
-      setAuditSummary('Claim rejected & removed from UI. Resuming content generation with remaining approved claims...');
+      setAuditSummary('Claim rejected & removed from pipeline.');
       setTimeout(() => setAuditSummary(null), 5000);
       if (onResumeContentGeneration) {
         onResumeContentGeneration();
@@ -315,7 +299,6 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
     }
   };
 
-  // Save Claim Edits
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingClaim) return;
@@ -330,7 +313,6 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
     setEditingClaim(null);
   };
 
-  // Manual Claim Formulation
   const handleCreateManualClaim = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClaimText.trim() || !newSelectedEvidenceId) {
@@ -368,29 +350,29 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   return (
     <div className="max-w-[1500px] mx-auto p-4 sm:p-6 space-y-6">
       {/* 01. Desk Action Header & Filter Bar */}
-      <div className="bg-[#FFFDF9] border border-[#DED2C5] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+      <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs rounded-xs">
         {/* Left: Metrics & Status */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 bg-[#661414] text-[#F5EBDF] text-[10px] font-mono font-bold uppercase rounded-xs">
               STAGE 02
             </span>
-            <h2 className="font-serif font-bold text-lg text-[#351D1D]">
+            <h2 className="font-serif font-bold text-lg text-[#351D1D] tracking-tight">
               Doctor Review Gate (12-Rule Clinical Audit)
             </h2>
           </div>
-          <p className="text-xs text-[#786A61]">
-            Deterministic rule engine checks verbatim quotes, study design, and pop over-generalization before content generation.
+          <p className="text-xs text-[#786A61] leading-relaxed">
+            Deterministic rule engine checks verbatim quotes, study design, and sample sizes before content generation.
           </p>
-          <div className="flex items-center gap-2 font-mono text-[11px] pt-1">
-            <span className="text-[#416C49] font-semibold bg-[#416C49]/10 px-2 py-0.5 rounded-xs">
-              ✓ {approvedCount} Human Approved
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] pt-1">
+            <span className="text-[#416C49] font-semibold bg-[#416C49]/15 px-2 py-0.5 rounded-xs">
+              ✓ {approvedCount} Doctor Approved
             </span>
-            <span className="text-[#BB4B2D] font-semibold bg-[#BB4B2D]/10 px-2 py-0.5 rounded-xs">
+            <span className="text-[#C04E2A] font-semibold bg-[#C04E2A]/15 px-2 py-0.5 rounded-xs">
               ⚠ {flaggedCount} Flagged
             </span>
             {blockedCount > 0 && (
-              <span className="text-[#661414] font-semibold bg-[#661414]/10 px-2 py-0.5 rounded-xs">
+              <span className="text-[#661414] font-semibold bg-[#661414]/15 px-2 py-0.5 rounded-xs">
                 ✕ {blockedCount} Blocked
               </span>
             )}
@@ -404,21 +386,21 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <button
             onClick={() => setShowNewClaimModal(true)}
-            className="px-3 py-1.5 bg-[#FFFDF9] hover:bg-[#F5EFE6] text-[#391E1D] border border-[#DED2C5] rounded-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
+            className="px-3 py-1.5 bg-[#FFFDF9] hover:bg-[#F8F2EB] text-[#351D1D] border border-[#E6CBBD] rounded-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors"
           >
-            <Plus className="w-3.5 h-3.5 text-[#74191D]" />
+            <Plus className="w-3.5 h-3.5 text-[#661414]" />
             <span>Formulate Claim</span>
           </button>
 
           <button
             onClick={handleDraftClaimsViaGemini}
             disabled={isGeneratingAiClaims}
-            className="px-3 py-1.5 bg-[#74191D] hover:bg-[#5b1317] disabled:opacity-50 text-[#FFFDF9] rounded-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+            className="px-3.5 py-1.5 bg-[#FFFDF9] hover:bg-[#F8F2EB] disabled:opacity-50 text-[#351D1D] border border-[#E6CBBD] rounded-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
           >
             {isGeneratingAiClaims ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C04E2A]" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-[#C04E2A]" />
             )}
             <span>{isGeneratingAiClaims ? 'Extracting...' : 'Extract Claims (AI Draft)'}</span>
           </button>
@@ -426,7 +408,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
           <button
             onClick={handleAutoAuditClaimsViaGemini}
             disabled={isAuditingClaims || paperClaims.length === 0}
-            className="px-3.5 py-1.5 bg-[#661414] hover:bg-[#4a0d0d] disabled:opacity-50 text-[#F5EBDF] rounded-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+            className="px-4 py-1.5 bg-[#661414] hover:bg-[#501010] disabled:opacity-50 text-[#FFFDF9] rounded-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
             title="Cross-reference all claims against source passages with Gemini Flash and auto-approve verified claims"
           >
             {isAuditingClaims ? (
@@ -434,13 +416,13 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
             ) : (
               <ShieldCheck className="w-3.5 h-3.5 text-[#C04E2A]" />
             )}
-            <span>{isAuditingClaims ? 'Auditing with Gemini...' : 'Auto-Audit All (Gemini Flash)'}</span>
+            <span>{isAuditingClaims ? 'Auditing...' : 'Auto-Audit All (Gemini Flash)'}</span>
           </button>
 
           {approvedCount > 0 && (
             <button
               onClick={onNavigateToStudio}
-              className="px-3 py-1.5 bg-[#416C49] hover:bg-[#34583b] text-[#FFFDF9] rounded-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+              className="px-3.5 py-1.5 bg-[#416C49] hover:bg-[#325438] text-[#FFFDF9] rounded-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
             >
               <span>Content Studio</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -450,14 +432,14 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
       </div>
 
       {auditSummary && (
-        <div className="p-3 bg-[#416C49]/10 border border-[#416C49]/30 text-[#416C49] text-xs flex items-center justify-between gap-2 rounded-xs">
+        <div className="p-3.5 bg-[#416C49]/15 border border-[#416C49]/30 text-[#416C49] text-xs flex items-center justify-between gap-2 rounded-xs animate-in fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0 text-[#416C49]" />
             <span>{auditSummary}</span>
           </div>
           <button
             onClick={() => setAuditSummary(null)}
-            className="text-[10px] font-mono hover:text-[#351D1D] cursor-pointer"
+            className="text-[11px] font-mono hover:text-[#351D1D] cursor-pointer font-bold"
           >
             ✕
           </button>
@@ -465,17 +447,18 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
       )}
 
       {aiError && (
-        <div className="p-3 bg-[#74191D]/10 border border-[#74191D]/30 text-[#74191D] text-xs">
-          {aiError}
+        <div className="p-3.5 bg-[#661414]/10 border border-[#661414]/30 text-[#661414] text-xs rounded-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{aiError}</span>
         </div>
       )}
 
       {/* 02. Two-Column Review Layout: Left Claims List, Right Interactive Verification Deck */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Claims Ledger Table (7 Cols) */}
-        <div className="lg:col-span-7 bg-[#FFFDF9] border border-[#DED2C5] flex flex-col">
+        <div className="lg:col-span-7 bg-[#FFFDF9] border border-[#E6CBBD] rounded-xs flex flex-col shadow-xs overflow-hidden">
           {/* Filter and Search Sub-bar */}
-          <div className="p-3 border-b border-[#DED2C5] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-[#F5EFE6]/30">
+          <div className="p-3 border-b border-[#E6CBBD] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-[#FAF6F0]">
             <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-[#786A61] absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
@@ -483,7 +466,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search claims, populations, quotes..."
-                className="w-full bg-[#FFFDF9] border border-[#DED2C5] text-xs py-1 pl-8 pr-3 text-[#391E1D] placeholder-[#786A61] rounded-xs focus:outline-none focus:border-[#74191D]"
+                className="w-full bg-[#FFFDF9] border border-[#E6CBBD] text-xs py-1.5 pl-8 pr-3 text-[#351D1D] placeholder-[#786A61] rounded-xs focus:outline-hidden focus:border-[#661414]"
               />
             </div>
 
@@ -492,10 +475,10 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                 <button
                   key={status}
                   onClick={() => setStatusFilter(status)}
-                  className={`px-2 py-1 rounded-xs transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-xs transition-colors cursor-pointer ${
                     statusFilter === status
-                      ? 'bg-[#391E1D] text-[#FFFDF9] font-semibold'
-                      : 'text-[#786A61] hover:text-[#391E1D] hover:bg-[#F5EFE6]'
+                      ? 'bg-[#661414] text-[#FFFDF9] font-semibold shadow-xs'
+                      : 'text-[#786A61] hover:text-[#351D1D] hover:bg-[#F8F2EB]'
                   }`}
                 >
                   {status === 'READY_FOR_HUMAN_REVIEW'
@@ -509,7 +492,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
           </div>
 
           {/* Claims List Rows */}
-          <div className="divide-y divide-[#DED2C5] max-h-[750px] overflow-y-auto">
+          <div className="divide-y divide-[#E6CBBD] max-h-[750px] overflow-y-auto">
             {filteredClaims.length > 0 ? (
               filteredClaims.map((claim) => {
                 const isSelected = activeClaim?.claim_id === claim.claim_id;
@@ -522,8 +505,8 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     onClick={() => handleSelectClaimRecord(claim)}
                     className={`p-4 transition-colors cursor-pointer text-xs space-y-2 ${
                       isSelected
-                        ? 'bg-[#F7E9DE]/40 border-l-3 border-[#74191D]'
-                        : 'hover:bg-[#F5EFE6]/30'
+                        ? 'bg-[#FAF6F0] border-l-3 border-[#661414]'
+                        : 'hover:bg-[#FAF6F0]/50'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -533,10 +516,10 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                             claim.review_status === 'HUMAN_APPROVED'
                               ? 'bg-[#416C49]/15 text-[#416C49]'
                               : claim.review_status === 'FLAGGED'
-                              ? 'bg-[#BB4B2D]/15 text-[#BB4B2D]'
+                              ? 'bg-[#C04E2A]/15 text-[#C04E2A]'
                               : claim.review_status === 'BLOCKED'
-                              ? 'bg-[#74191D]/15 text-[#74191D]'
-                              : 'bg-[#DED2C5] text-[#391E1D]'
+                              ? 'bg-[#661414]/15 text-[#661414]'
+                              : 'bg-[#E6CBBD]/60 text-[#351D1D]'
                           }`}
                         >
                           {claim.review_status.replace(/_/g, ' ')}
@@ -551,7 +534,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                       </span>
                     </div>
 
-                    <p className="font-serif text-sm font-semibold text-[#391E1D] leading-snug">
+                    <p className="font-serif text-sm font-semibold text-[#351D1D] leading-snug">
                       {claim.claim_text}
                     </p>
 
@@ -561,11 +544,11 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                       </span>
 
                       {hasBlockers ? (
-                        <span className="text-[#74191D] font-mono text-[10px] flex items-center gap-1 font-semibold">
+                        <span className="text-[#661414] font-mono text-[10px] flex items-center gap-1 font-semibold">
                           <XCircle className="w-3 h-3" /> Blocker Detected
                         </span>
                       ) : hasFlags ? (
-                        <span className="text-[#BB4B2D] font-mono text-[10px] flex items-center gap-1 font-semibold">
+                        <span className="text-[#C04E2A] font-mono text-[10px] flex items-center gap-1 font-semibold">
                           <AlertTriangle className="w-3 h-3" /> Flagged Finding
                         </span>
                       ) : (
@@ -586,12 +569,12 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
         </div>
 
         {/* Right Column: Detailed Evidence Verification Deck (5 Cols) */}
-        <div className="lg:col-span-5 bg-[#FFFDF9] border border-[#DED2C5] p-5 space-y-5 sticky top-20">
+        <div className="lg:col-span-5 bg-[#FFFDF9] border border-[#E6CBBD] rounded-xs p-5 space-y-4 sticky top-20 shadow-xs">
           {activeClaim ? (
             <>
               {/* Header: Title and Status */}
-              <div className="flex items-center justify-between border-b border-[#DED2C5] pb-3">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-semibold">
+              <div className="flex items-center justify-between border-b border-[#E6CBBD] pb-3">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-bold">
                   EVIDENCE VERIFICATION DECK
                 </span>
                 <span
@@ -599,10 +582,10 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     activeClaim.review_status === 'HUMAN_APPROVED'
                       ? 'bg-[#416C49]/15 text-[#416C49]'
                       : activeClaim.review_status === 'FLAGGED'
-                      ? 'bg-[#BB4B2D]/15 text-[#BB4B2D]'
+                      ? 'bg-[#C04E2A]/15 text-[#C04E2A]'
                       : activeClaim.review_status === 'BLOCKED'
-                      ? 'bg-[#74191D]/15 text-[#74191D]'
-                      : 'bg-[#DED2C5] text-[#391E1D]'
+                      ? 'bg-[#661414]/15 text-[#661414]'
+                      : 'bg-[#E6CBBD]/60 text-[#351D1D]'
                   }`}
                 >
                   {activeClaim.review_status.replace(/_/g, ' ')}
@@ -614,22 +597,22 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-semibold block">
                   ACTIVE CLAIM STATEMENT
                 </span>
-                <div className="p-3 bg-[#F5EFE6]/60 border-l-2 border-[#74191D] font-serif text-sm font-semibold text-[#391E1D] leading-snug">
+                <div className="p-3 bg-[#F8F2EB] border-l-3 border-[#661414] font-serif text-sm font-semibold text-[#351D1D] leading-snug rounded-r-xs">
                   {activeClaim.claim_text}
                 </div>
               </div>
 
-              {/* Verbatim Supporting Passage with Restrained Warm Highlight */}
+              {/* Verbatim Supporting Passage */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-semibold flex items-center gap-1">
-                    <Quote className="w-3 h-3 text-[#BB4B2D]" />
+                    <Quote className="w-3 h-3 text-[#C04E2A]" />
                     VERBATIM SOURCE EVIDENCE
                   </span>
                   {linkedPassage && (
                     <button
                       onClick={() => onViewSourcePassage(linkedPassage.evidence_id)}
-                      className="text-[10px] font-mono text-[#74191D] hover:underline flex items-center gap-0.5 cursor-pointer font-medium"
+                      className="text-[10px] font-mono text-[#661414] hover:underline flex items-center gap-0.5 cursor-pointer font-medium"
                     >
                       <span>p. {linkedPassage.pdf_page_index} ({linkedPassage.section})</span>
                       <ExternalLink className="w-2.5 h-2.5" />
@@ -637,25 +620,25 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                   )}
                 </div>
 
-                <div className="p-3 bg-[#F7E9DE]/80 border border-[#DED2C5] font-serif text-xs italic text-[#391E1D] leading-relaxed">
+                <div className="p-3 bg-[#FAF6F0] border border-[#E6CBBD] rounded-xs font-serif text-xs italic text-[#351D1D] leading-relaxed">
                   "{activeClaim.exact_supporting_quote || linkedPassage?.verbatim_text || 'No verbatim quote found.'}"
                 </div>
               </div>
 
               {/* Methodology Matrix */}
-              <div className="border-t border-[#DED2C5] pt-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 border border-[#DED2C5]/70 bg-[#F5EFE6]/30">
+              <div className="border-t border-[#E6CBBD] pt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 border border-[#E6CBBD] bg-[#F8F2EB] rounded-xs">
                   <span className="text-[9px] font-mono uppercase text-[#786A61] block">Cohort / Population</span>
-                  <span className="font-medium text-[#391E1D] block mt-0.5">{activeClaim.population}</span>
+                  <span className="font-medium text-[#351D1D] block mt-0.5">{activeClaim.population}</span>
                 </div>
-                <div className="p-2 border border-[#DED2C5]/70 bg-[#F5EFE6]/30">
+                <div className="p-2 border border-[#E6CBBD] bg-[#F8F2EB] rounded-xs">
                   <span className="text-[9px] font-mono uppercase text-[#786A61] block">Study Design</span>
-                  <span className="font-medium text-[#391E1D] block mt-0.5">{activeClaim.study_design}</span>
+                  <span className="font-medium text-[#351D1D] block mt-0.5">{activeClaim.study_design}</span>
                 </div>
               </div>
 
               {/* Deterministic Validation Engine Findings */}
-              <div className="border-t border-[#DED2C5] pt-3 space-y-2">
+              <div className="border-t border-[#E6CBBD] pt-3 space-y-2">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-semibold block">
                   12-RULE VALIDATION STATUS
                 </span>
@@ -667,8 +650,8 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                         key={i}
                         className={`p-2.5 text-xs rounded-xs border space-y-1 ${
                           f.severity === 'BLOCKER'
-                            ? 'bg-[#74191D]/5 border-[#74191D]/30 text-[#74191D]'
-                            : 'bg-[#BB4B2D]/5 border-[#BB4B2D]/30 text-[#BB4B2D]'
+                            ? 'bg-[#661414]/5 border-[#661414]/30 text-[#661414]'
+                            : 'bg-[#C04E2A]/5 border-[#C04E2A]/30 text-[#C04E2A]'
                         }`}
                       >
                         <div className="flex items-center justify-between font-mono text-[9px] font-bold uppercase">
@@ -683,7 +666,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <div className="p-2.5 bg-[#416C49]/5 border border-[#416C49]/20 text-[#416C49] text-xs flex items-center gap-2 font-medium">
+                  <div className="p-2.5 bg-[#416C49]/10 border border-[#416C49]/30 text-[#416C49] text-xs flex items-center gap-2 font-medium rounded-xs">
                     <Check className="w-3.5 h-3.5" />
                     <span>All deterministic checks passed cleanly.</span>
                   </div>
@@ -691,7 +674,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
               </div>
 
               {/* Human Editorial Decision Bar */}
-              <div className="border-t border-[#DED2C5] pt-4 space-y-2">
+              <div className="border-t border-[#E6CBBD] pt-3 space-y-2">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#786A61] font-semibold block">
                   REVIEWER DECISION
                 </span>
@@ -716,7 +699,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                         );
                         if (note !== null) handleFlag(activeClaim, note);
                       }}
-                      className="py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#BB4B2D] text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      className="py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F8F2EB] border border-[#E6CBBD] text-[#C04E2A] text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors rounded-xs"
                     >
                       <AlertTriangle className="w-3 h-3" />
                       <span>Flag</span>
@@ -724,7 +707,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
 
                     <button
                       onClick={() => setEditingClaim(activeClaim)}
-                      className="py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#391E1D] text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      className="py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F8F2EB] border border-[#E6CBBD] text-[#351D1D] text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors rounded-xs"
                     >
                       <Edit3 className="w-3 h-3 text-[#786A61]" />
                       <span>Edit</span>
@@ -732,7 +715,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
 
                     <button
                       onClick={() => handleReject(activeClaim)}
-                      className="py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#74191D] text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      className="py-1.5 px-2 bg-[#FFFDF9] hover:bg-[#F8F2EB] border border-[#E6CBBD] text-[#661414] text-xs font-medium flex items-center justify-center gap-1 cursor-pointer transition-colors rounded-xs"
                     >
                       <X className="w-3 h-3" />
                       <span>Reject</span>
@@ -742,7 +725,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                   <button
                     onClick={() => handleAuditSingleClaimViaGemini(activeClaim)}
                     disabled={isAuditingClaims}
-                    className="w-full py-2 px-3 text-xs font-semibold bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#661414] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                    className="w-full py-2 px-3 text-xs font-semibold bg-[#FFFDF9] hover:bg-[#F8F2EB] border border-[#E6CBBD] text-[#661414] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                     title="Audit this individual claim with Gemini Flash against verbatim source passages"
                   >
                     {isAuditingClaims ? (
@@ -765,15 +748,15 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
 
       {/* 03. Edit Claim Statement Modal */}
       {editingClaim && (
-        <div className="fixed inset-0 z-50 bg-[#391E1D]/50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF9] border border-[#DED2C5] max-w-lg w-full p-6 space-y-4 shadow-xl animate-in fade-in">
-            <div className="flex items-center justify-between border-b border-[#DED2C5] pb-2">
-              <h3 className="font-serif font-bold text-base text-[#391E1D]">
+        <div className="fixed inset-0 z-50 bg-[#351D1D]/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FFFDF9] border border-[#E6CBBD] max-w-lg w-full p-6 space-y-4 shadow-xl rounded-xs animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#E6CBBD] pb-3">
+              <h3 className="font-serif font-bold text-base text-[#351D1D]">
                 Edit Claim Statement
               </h3>
               <button
                 onClick={() => setEditingClaim(null)}
-                className="text-[#786A61] hover:text-[#391E1D] cursor-pointer"
+                className="text-[#786A61] hover:text-[#351D1D] p-1 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -790,7 +773,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     setEditingClaim({ ...editingClaim, claim_text: e.target.value })
                   }
                   rows={3}
-                  className="w-full p-2 bg-[#FFFDF9] border border-[#DED2C5] text-xs rounded-xs focus:outline-none focus:border-[#74191D]"
+                  className="w-full p-2 bg-[#FAF6F0] border border-[#E6CBBD] text-xs rounded-xs focus:outline-hidden focus:border-[#661414] leading-relaxed"
                 />
               </div>
 
@@ -807,7 +790,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     })
                   }
                   rows={2}
-                  className="w-full p-2 bg-[#FFFDF9] border border-[#DED2C5] text-xs rounded-xs focus:outline-none focus:border-[#74191D]"
+                  className="w-full p-2 bg-[#FAF6F0] border border-[#E6CBBD] text-xs rounded-xs focus:outline-hidden focus:border-[#661414] italic font-serif"
                 />
               </div>
 
@@ -822,7 +805,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     onChange={(e) =>
                       setEditingClaim({ ...editingClaim, population: e.target.value })
                     }
-                    className="w-full p-2 bg-[#FFFDF9] border border-[#DED2C5] text-xs rounded-xs"
+                    className="w-full p-2 bg-[#FAF6F0] border border-[#E6CBBD] text-xs rounded-xs focus:outline-hidden focus:border-[#661414]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -835,22 +818,22 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     onChange={(e) =>
                       setEditingClaim({ ...editingClaim, study_design: e.target.value })
                     }
-                    className="w-full p-2 bg-[#FFFDF9] border border-[#DED2C5] text-xs rounded-xs"
+                    className="w-full p-2 bg-[#FAF6F0] border border-[#E6CBBD] text-xs rounded-xs focus:outline-hidden focus:border-[#661414]"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-[#DED2C5]">
+              <div className="pt-3 flex justify-end gap-2 border-t border-[#E6CBBD]">
                 <button
                   type="button"
                   onClick={() => setEditingClaim(null)}
-                  className="px-3 py-1.5 border border-[#DED2C5] hover:bg-[#F5EFE6] text-xs font-medium cursor-pointer"
+                  className="px-3.5 py-1.5 border border-[#E6CBBD] hover:bg-[#F8F2EB] text-xs font-medium cursor-pointer rounded-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-[#74191D] hover:bg-[#5b1317] text-[#FFFDF9] text-xs font-semibold cursor-pointer"
+                  className="px-4 py-1.5 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold cursor-pointer rounded-xs shadow-xs"
                 >
                   Save & Re-validate
                 </button>
@@ -862,15 +845,15 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
 
       {/* 04. Formulate Manual Claim Modal */}
       {showNewClaimModal && (
-        <div className="fixed inset-0 z-50 bg-[#391E1D]/50 flex items-center justify-center p-4">
-          <div className="bg-[#FFFDF9] border border-[#DED2C5] max-w-lg w-full p-6 space-y-4 shadow-xl animate-in fade-in">
-            <div className="flex items-center justify-between border-b border-[#DED2C5] pb-2">
-              <h3 className="font-serif font-bold text-base text-[#391E1D]">
+        <div className="fixed inset-0 z-50 bg-[#351D1D]/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FFFDF9] border border-[#E6CBBD] max-w-lg w-full p-6 space-y-4 shadow-xl rounded-xs animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#E6CBBD] pb-3">
+              <h3 className="font-serif font-bold text-base text-[#351D1D]">
                 Formulate New Factual Claim
               </h3>
               <button
                 onClick={() => setShowNewClaimModal(false)}
-                className="text-[#786A61] hover:text-[#391E1D] cursor-pointer"
+                className="text-[#786A61] hover:text-[#351D1D] p-1 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -890,7 +873,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                       setNewQuote(selected.verbatim_text.substring(0, 180));
                     }
                   }}
-                  className="w-full p-2 bg-[#FFFDF9] border border-[#DED2C5] text-xs rounded-xs"
+                  className="w-full p-2 bg-[#FAF6F0] border border-[#E6CBBD] text-xs rounded-xs focus:outline-hidden focus:border-[#661414]"
                   required
                 >
                   <option value="">Select source passage...</option>
@@ -911,7 +894,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                   onChange={(e) => setNewClaimText(e.target.value)}
                   placeholder="e.g. In resistance-trained young men, 14 days of supplementation was associated with a 28% lower CK..."
                   rows={3}
-                  className="w-full p-2 bg-[#FFFDF9] border border-[#DED2C5] text-xs rounded-xs focus:outline-none focus:border-[#74191D]"
+                  className="w-full p-2 bg-[#FAF6F0] border border-[#E6CBBD] text-xs rounded-xs focus:outline-hidden focus:border-[#661414] leading-relaxed"
                   required
                 />
               </div>
@@ -924,21 +907,21 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                   value={newQuote}
                   onChange={(e) => setNewQuote(e.target.value)}
                   rows={2}
-                  className="w-full p-2 bg-[#FFFDF9] border border-[#DED2C5] text-xs rounded-xs"
+                  className="w-full p-2 bg-[#FAF6F0] border border-[#E6CBBD] text-xs rounded-xs focus:outline-hidden focus:border-[#661414] italic font-serif"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-[#DED2C5]">
+              <div className="pt-3 flex justify-end gap-2 border-t border-[#E6CBBD]">
                 <button
                   type="button"
                   onClick={() => setShowNewClaimModal(false)}
-                  className="px-3 py-1.5 border border-[#DED2C5] hover:bg-[#F5EFE6] text-xs font-medium cursor-pointer"
+                  className="px-3.5 py-1.5 border border-[#E6CBBD] hover:bg-[#F8F2EB] text-xs font-medium cursor-pointer rounded-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-[#74191D] hover:bg-[#5b1317] text-[#FFFDF9] text-xs font-semibold cursor-pointer"
+                  className="px-4 py-1.5 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold cursor-pointer rounded-xs shadow-xs"
                 >
                   Create & Run Validation
                 </button>

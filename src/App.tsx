@@ -902,6 +902,7 @@ export default function App() {
               ? () => setCurrentTab('studio')
               : undefined
           }
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
         />
 
         {/* 03. Split Work Canvas: Center Content + Right Contextual Inspector */}

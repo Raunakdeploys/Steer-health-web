@@ -340,14 +340,19 @@ export const SelfTestRunner: React.FC = () => {
   const totalPassed = testResults.filter((r) => r.passed).length;
 
   return (
-    <div className="max-w-[1360px] mx-auto p-4 sm:p-6 md:p-8 space-y-6 max-h-[88vh] overflow-y-auto pr-2">
+    <div className="max-w-[1400px] mx-auto p-4 sm:p-6 space-y-6">
       {/* 01. Desk Header */}
-      <div className="bg-[#FFFDF9] border border-[#DED2C5] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-lg font-bold text-[#391E1D]">
-            12-Rule Deterministic Validation & Acceptance Pipeline
-          </h2>
-          <p className="text-xs text-[#786A61]">
+      <div className="bg-[#FFFDF9] border border-[#E6CBBD] p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xs shadow-xs">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-[#661414] text-[#F5EBDF] text-[10px] font-mono font-bold uppercase rounded-xs">
+              COMPLIANCE AUDIT
+            </span>
+            <h2 className="font-serif text-lg font-bold text-[#351D1D] tracking-tight">
+              12-Rule Deterministic Validation & Acceptance Suite
+            </h2>
+          </div>
+          <p className="text-xs text-[#786A61] leading-relaxed">
             Fully transparent verification of the 12 mandatory rules and test cases defined in the Steer Health-Science specification.
           </p>
         </div>
@@ -356,10 +361,10 @@ export const SelfTestRunner: React.FC = () => {
           <button
             onClick={runAllTests}
             disabled={isRunning}
-            className="px-4 py-2 text-xs font-semibold text-[#FFFDF9] bg-[#74191D] hover:bg-[#5b1317] rounded-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+            className="px-4 py-2 text-xs font-semibold text-[#FFFDF9] bg-[#661414] hover:bg-[#501010] rounded-xs flex items-center gap-2 cursor-pointer transition-colors shadow-xs"
           >
-            <Play className="w-3.5 h-3.5" />
-            <span>{isRunning ? 'Running Tests...' : 'Execute with Selected Document'}</span>
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>{isRunning ? 'Running Verification...' : 'Execute Test Suite'}</span>
           </button>
         </div>
       </div>
@@ -367,10 +372,10 @@ export const SelfTestRunner: React.FC = () => {
       {/* 02. Summary Scorecard */}
       {testResults.length > 0 && (
         <div
-          className={`p-4 border flex items-center justify-between text-xs font-mono ${
+          className={`p-4 border rounded-xs flex items-center justify-between text-xs font-mono shadow-xs ${
             totalPassed === testCases.length
-              ? 'bg-[#416C49]/10 border-[#416C49]/30 text-[#416C49]'
-              : 'bg-[#74191D]/10 border-[#74191D]/30 text-[#74191D]'
+              ? 'bg-[#416C49]/15 border-[#416C49]/30 text-[#416C49]'
+              : 'bg-[#661414]/15 border-[#661414]/30 text-[#661414]'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -379,23 +384,23 @@ export const SelfTestRunner: React.FC = () => {
               {totalPassed} of {testCases.length} Scenarios Passed (100% Deterministic Compliance)
             </span>
           </div>
-          <span className="text-[11px]">Engine: Deterministic Validation V1</span>
+          <span className="text-[11px] font-semibold">Engine: Deterministic Validation V1</span>
         </div>
       )}
 
       {/* 03. Test Cases Ledger */}
-      <div className="bg-[#FFFDF9] border border-[#DED2C5] divide-y divide-[#DED2C5]">
+      <div className="bg-[#FFFDF9] border border-[#E6CBBD] divide-y divide-[#E6CBBD] rounded-xs shadow-xs overflow-hidden">
         {testCases.map((tc) => {
           const result = testResults.find((r) => r.id === tc.id);
 
           return (
-            <div key={tc.id} className="p-4 sm:p-5 space-y-2 text-xs">
+            <div key={tc.id} className="p-4 sm:p-5 space-y-2.5 text-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-[10px] text-[#74191D] bg-[#F5EFE6] px-1.5 py-0.2 border border-[#DED2C5]">
+                  <span className="font-mono font-bold text-[10px] text-[#661414] bg-[#FAF6F0] px-2 py-0.5 border border-[#E6CBBD] rounded-xs">
                     CASE 0{tc.id}
                   </span>
-                  <h3 className="font-serif font-bold text-sm text-[#391E1D]">
+                  <h3 className="font-serif font-bold text-sm text-[#351D1D]">
                     {tc.name}
                   </h3>
                 </div>
@@ -404,8 +409,8 @@ export const SelfTestRunner: React.FC = () => {
                   <span
                     className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-xs flex items-center gap-1 ${
                       result.passed
-                        ? 'bg-[#416C49]/10 text-[#416C49] border border-[#416C49]/30'
-                        : 'bg-[#74191D]/10 text-[#74191D] border border-[#74191D]/30'
+                        ? 'bg-[#416C49]/15 text-[#416C49] border border-[#416C49]/30'
+                        : 'bg-[#661414]/15 text-[#661414] border border-[#661414]/30'
                     }`}
                   >
                     {result.passed ? (
@@ -427,16 +432,16 @@ export const SelfTestRunner: React.FC = () => {
                 {tc.description}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-[#F5EFE6]/50 p-2.5 border border-[#DED2C5]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono bg-[#FAF6F0] p-3 border border-[#E6CBBD] rounded-xs">
                 <div>
-                  <span className="text-[#786A61]">EXPECTED: </span>
-                  <span className="font-semibold text-[#391E1D]">
+                  <span className="text-[#786A61] font-bold">EXPECTED: </span>
+                  <span className="font-semibold text-[#351D1D]">
                     {tc.expectedStatus} (Rule: {tc.expectedRuleId})
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#786A61]">ACTUAL: </span>
-                  <span className="font-semibold text-[#391E1D]">
+                  <span className="text-[#786A61] font-bold">ACTUAL: </span>
+                  <span className="font-semibold text-[#351D1D]">
                     {result
                       ? `${result.actualStatus} (${result.findings.map((f) => f.rule_id).join(', ') || 'No findings'})`
                       : '—'}
