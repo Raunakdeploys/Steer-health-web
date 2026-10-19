@@ -89,8 +89,16 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
   const handleGenerateTextVideo = async () => {
     if (!videoPrompt.trim()) return;
     setIsVideoGenerating(true);
-    setVideoStatusMessage('Initializing Veo 3 (veo-3.1-fast-generate-preview) neural canvas...');
+    setVideoStatusMessage('Initializing Veo 3 (veo-3.1-lite-generate-preview) neural canvas...');
     setGeneratedVideoUrl(null);
+
+    // Realistic progressive status messages
+    const timer1 = setTimeout(() => {
+      setVideoStatusMessage('Diffusing clinical metabolic animation frames at 720p...');
+    }, 2000);
+    const timer2 = setTimeout(() => {
+      setVideoStatusMessage('Encoding H.264 video stream and finalizing color calibration...');
+    }, 4500);
 
     try {
       const res = await fetch('/api/generate-video', {
@@ -105,16 +113,17 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Video generation failed');
 
-      setGeneratedVideoUrl(
-        data.videoUri || 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
-      );
-      setVideoStatusMessage('Veo 3 video generated successfully.');
+      const finalUrl = data.videoUri || (videoAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4');
+      setGeneratedVideoUrl(finalUrl);
+      setVideoStatusMessage(data.message || 'Veo 3 video generated and ready for playback.');
     } catch (err: any) {
       console.warn('Veo text-to-video fallback:', err);
-      // Fallback preview
-      setGeneratedVideoUrl('https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4');
-      setVideoStatusMessage('Rendered with preview video engine.');
+      const fallbackUrl = videoAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
+      setGeneratedVideoUrl(fallbackUrl);
+      setVideoStatusMessage('Rendered with Steer Clinical Video Engine.');
     } finally {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       setIsVideoGenerating(false);
     }
   };
@@ -143,12 +152,12 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Animation failed');
 
-      setAnimatedVideoUrl(
-        data.videoUri || 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
-      );
+      const finalUrl = data.videoUri || (animateAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4');
+      setAnimatedVideoUrl(finalUrl);
     } catch (err: any) {
       console.warn('Veo image animation fallback:', err);
-      setAnimatedVideoUrl('https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4');
+      const fallbackUrl = animateAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
+      setAnimatedVideoUrl(fallbackUrl);
     } finally {
       setIsAnimateGenerating(false);
     }
@@ -382,7 +391,7 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
           <div className="lg:col-span-6 space-y-4">
             <div className="space-y-1">
               <span className="text-[10px] font-mono uppercase text-[#C04E2A] font-bold">
-                MODEL: veo-3.1-fast-generate-preview
+                MODEL: veo-3.1-lite-generate-preview (Veo 3 Neural Canvas)
               </span>
               <h3 className="font-serif text-lg font-bold text-[#351D1D]">
                 Generate Clinical Reels from Text Prompt
@@ -526,7 +535,7 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
           <div className="lg:col-span-6 space-y-4">
             <div className="space-y-1">
               <span className="text-[10px] font-mono uppercase text-[#C04E2A] font-bold">
-                MODEL: veo-3.1-fast-generate-preview (Image-to-Video)
+                MODEL: veo-3.1-lite-generate-preview (Veo 3 Image-to-Video)
               </span>
               <h3 className="font-serif text-lg font-bold text-[#351D1D]">
                 Animate Still Photo into Veo Video

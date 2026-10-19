@@ -239,84 +239,145 @@ export async function downloadCarouselSlidePng(
  * HTML5 Canvas + MediaRecorder vertical video generator
  * Records scenes sequentially and provides WebM download
  */
+/**
+ * Renders Reel Video with resilient dual-engine execution:
+ * 1. Attempts client-side HTML5 Canvas + MediaRecorder
+ * 2. Seamlessly falls back to server-side FFmpeg high-definition video synthesis
+ */
 export async function recordReelVideo(
   scenes: ReelScene[],
   onProgress: (percent: number, statusText: string) => void
 ): Promise<Blob> {
   const width = 720;
-  const height = 1280; // Standard 9:16 mobile canvas
+  const height = 1280; // Standard 9:16 mobile vertical canvas
 
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Could not initialize 2D canvas context.');
+  // First try client-side canvas capture if supported
+  const hasCaptureStream = typeof HTMLCanvasElement !== 'undefined' && 
+    (HTMLCanvasElement.prototype as any).captureStream;
 
-  if (typeof MediaRecorder === 'undefined' || !(canvas as any).captureStream) {
-    throw new Error('Browser video capture is not supported in this environment.');
-  }
+  if (typeof MediaRecorder !== 'undefined' && hasCaptureStream) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not initialize 2D context.');
 
-  const stream = (canvas as any).captureStream(15); // 15 FPS for high stability & quick rendering
-  let mimeType = 'video/webm;codecs=vp9';
-  if (!MediaRecorder.isTypeSupported(mimeType)) {
-    if (MediaRecorder.isTypeSupported('video/webm')) {
-      mimeType = 'video/webm';
-    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-      mimeType = 'video/mp4';
-    } else {
-      mimeType = '';
-    }
-  }
-
-  const options: MediaRecorderOptions = mimeType ? { mimeType, videoBitsPerSecond: 2500000 } : {};
-  const recorder = new MediaRecorder(stream, options);
-  const recordedChunks: Blob[] = [];
-
-  recorder.ondataavailable = (e) => {
-    if (e.data && e.data.size > 0) {
-      recordedChunks.push(e.data);
-    }
-  };
-
-  return new Promise(async (resolve, reject) => {
-    recorder.onstop = () => {
-      const outputType = mimeType || 'video/webm';
-      const videoBlob = new Blob(recordedChunks, { type: outputType });
-      resolve(videoBlob);
-    };
-    recorder.onerror = (e) => reject(e);
-
-    recorder.start(100);
-
-    const totalDurationSec = scenes.reduce((sum, s) => sum + (s.duration_sec || 5), 0);
-    let elapsedSec = 0;
-    const fps = 15;
-
-    for (let sIdx = 0; sIdx < scenes.length; sIdx++) {
-      const scene = scenes[sIdx];
-      const sceneDuration = scene.duration_sec || 5;
-      const totalFrames = Math.max(3, Math.round(sceneDuration * fps));
-
-      for (let frame = 0; frame < totalFrames; frame++) {
-        const frameTime = frame / fps;
-        const currentTotalSec = elapsedSec + frameTime;
-        const progress = Math.min(99, Math.round((currentTotalSec / totalDurationSec) * 100));
-
-        onProgress(progress, `Rendering Scene ${sIdx + 1} of ${scenes.length} (${Math.round(currentTotalSec)}s / ${totalDurationSec}s)...`);
-
-        // Render frame
-        drawReelFrame(ctx, width, height, scene, sIdx + 1, scenes.length, frameTime, sceneDuration);
-
-        // Responsive frame delay: keeps UI responsive without hanging
-        await new Promise((r) => setTimeout(r, 12));
+      // Render initial frame first so stream track acquires valid geometry
+      if (scenes.length > 0) {
+        drawReelFrame(ctx, width, height, scenes[0], 1, scenes.length, 0, scenes[0].duration_sec || 5);
       }
 
-      elapsedSec += sceneDuration;
-    }
+      const stream = (canvas as any).captureStream(20);
+      let mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+          mimeType = 'video/webm;codecs=vp8';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          mimeType = 'video/webm';
+        } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+          mimeType = 'video/mp4';
+        } else {
+          mimeType = '';
+        }
+      }
 
-    onProgress(100, 'Finalizing video stream...');
-    recorder.stop();
+      const options: MediaRecorderOptions = mimeType ? { mimeType, videoBitsPerSecond: 2500000 } : {};
+      const recorder = new MediaRecorder(stream, options);
+      const recordedChunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      const clientBlob = await new Promise<Blob>((resolve, reject) => {
+        recorder.onstop = () => {
+          const outputType = mimeType || 'video/webm';
+          const videoBlob = new Blob(recordedChunks, { type: outputType });
+          if (videoBlob.size > 1024) {
+            resolve(videoBlob);
+          } else {
+            reject(new Error('Recorded video buffer empty'));
+          }
+        };
+        recorder.onerror = (e) => reject(e);
+
+        recorder.start(100);
+
+        const totalDurationSec = scenes.reduce((sum, s) => sum + (s.duration_sec || 5), 0);
+        let elapsedSec = 0;
+        const fps = 20;
+
+        (async () => {
+          try {
+            for (let sIdx = 0; sIdx < scenes.length; sIdx++) {
+              const scene = scenes[sIdx];
+              const sceneDuration = scene.duration_sec || 5;
+              const totalFrames = Math.max(3, Math.round(sceneDuration * fps));
+
+              for (let frame = 0; frame < totalFrames; frame++) {
+                const frameTime = frame / fps;
+                const currentTotalSec = elapsedSec + frameTime;
+                const progress = Math.min(95, Math.round((currentTotalSec / totalDurationSec) * 100));
+
+                onProgress(
+                  progress,
+                  `Rendering Scene ${sIdx + 1}/${scenes.length} (${Math.round(currentTotalSec)}s / ${totalDurationSec}s)...`
+                );
+
+                drawReelFrame(ctx, width, height, scene, sIdx + 1, scenes.length, frameTime, sceneDuration);
+                await new Promise((r) => setTimeout(r, 20));
+              }
+
+              elapsedSec += sceneDuration;
+            }
+
+            onProgress(98, 'Finalizing video stream...');
+            try {
+              if (recorder.state !== 'inactive') {
+                recorder.requestData();
+              }
+            } catch {}
+            setTimeout(() => {
+              if (recorder.state !== 'inactive') {
+                recorder.stop();
+              }
+            }, 100);
+          } catch (animErr) {
+            reject(animErr);
+          }
+        })();
+      });
+
+      if (clientBlob && clientBlob.size > 1024) {
+        onProgress(100, 'Reel video successfully generated!');
+        return clientBlob;
+      }
+    } catch (clientErr) {
+      console.warn('Client-side MediaRecorder notice, switching to Steer Server Video Engine:', clientErr);
+    }
+  }
+
+  // Fallback to Server Video Engine
+  onProgress(50, 'Synthesizing with Steer Server Video Engine...');
+  const res = await fetch('/api/render-reel-video', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scenes, reelId: `reel_${Date.now()}` }),
   });
+
+  const data = await res.json();
+  if (!res.ok || !data.videoUri) {
+    throw new Error(data.error || 'Server video rendering failed');
+  }
+
+  onProgress(90, 'Downloading generated MP4 video stream...');
+  const videoStreamRes = await fetch(data.videoUri);
+  const serverBlob = await videoStreamRes.blob();
+  onProgress(100, 'Video ready for preview & download!');
+  return serverBlob;
 }
 
 function drawReelFrame(
