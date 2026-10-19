@@ -21,6 +21,7 @@ import {
   FlaskConical,
   Compass,
   GitBranch,
+  ShieldCheck,
 } from 'lucide-react';
 
 export type ActiveTab =
@@ -34,7 +35,8 @@ export type ActiveTab =
   | 'papers'
   | 'source'
   | 'report'
-  | 'selftest';
+  | 'selftest'
+  | 'audit';
 
 interface NavigationSidebarProps {
   currentTab: ActiveTab;
@@ -145,6 +147,13 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
       icon: AlertTriangle,
       badge: '12 Rules',
       badgeStyle: 'bg-[#661414]/10 text-[#661414]',
+    },
+    {
+      id: 'audit',
+      label: 'Audit Logs',
+      icon: ShieldCheck,
+      badge: 'All Users',
+      badgeStyle: 'bg-[#416C49]/15 text-[#416C49]',
     },
   ];
 

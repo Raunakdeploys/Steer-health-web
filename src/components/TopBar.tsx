@@ -42,32 +42,8 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <>
-      <header className="h-12 bg-[#FFFDF9] border-b border-[#DED2C5] px-4 flex items-center justify-between gap-3 shrink-0 sticky top-0 z-30 shadow-xs">
-        {/* Left: Branding matching image.png */}
-        <div className="flex items-center gap-3">
-          <div className="md:hidden flex items-center gap-2">
-            <button
-              onClick={onToggleSidebarMobile}
-              className="p-1.5 text-[#351D1D] hover:bg-[#F5EFE6] rounded-xs cursor-pointer"
-              title="Open navigation menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
-          <div
-            className="flex items-center gap-2 cursor-pointer"
-            onClick={() => onSelectTab && onSelectTab('desk')}
-          >
-            <span className="font-serif italic text-lg font-bold text-[#661414] tracking-tight">
-              steer / stitch
-            </span>
-            <span className="hidden sm:inline-block text-[9px] font-mono tracking-widest uppercase text-[#786A61] border border-[#DED2C5] px-1.5 py-0.5 rounded-xs bg-[#FAF6F0]">
-              DESK
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Exactly as in image.png: SQL status, Investigation, Graph, Inspector */}
+      <header className="h-12 bg-[#FFFDF9] border-b border-[#DED2C5] px-4 flex items-center justify-end gap-3 shrink-0 sticky top-0 z-30 shadow-xs">
+        {/* Right: Icons including and after SQL: connected */}
         <div className="flex items-center gap-2">
           {/* Cloud SQL Status Badge */}
           <div

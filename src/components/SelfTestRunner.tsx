@@ -340,26 +340,28 @@ export const SelfTestRunner: React.FC = () => {
   const totalPassed = testResults.filter((r) => r.passed).length;
 
   return (
-    <div className="max-w-[1360px] mx-auto p-4 sm:p-6 md:p-8 space-y-6">
+    <div className="max-w-[1360px] mx-auto p-4 sm:p-6 md:p-8 space-y-6 max-h-[88vh] overflow-y-auto pr-2">
       {/* 01. Desk Header */}
       <div className="bg-[#FFFDF9] border border-[#DED2C5] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-lg font-bold text-[#391E1D]">
-            12-Rule Deterministic Validation Acceptance Suite
+            12-Rule Deterministic Validation & Acceptance Pipeline
           </h2>
           <p className="text-xs text-[#786A61]">
-            Automated verification of the 8 mandatory test cases defined in the Steer Health-Science content hackathon specification.
+            Fully transparent verification of the 12 mandatory rules and test cases defined in the Steer Health-Science specification.
           </p>
         </div>
 
-        <button
-          onClick={runAllTests}
-          disabled={isRunning}
-          className="px-4 py-2 text-xs font-semibold text-[#FFFDF9] bg-[#74191D] hover:bg-[#5b1317] rounded-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-        >
-          <Play className="w-3.5 h-3.5" />
-          <span>{isRunning ? 'Running Tests...' : 'Execute All 8 Self-Test Scenarios'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={runAllTests}
+            disabled={isRunning}
+            className="px-4 py-2 text-xs font-semibold text-[#FFFDF9] bg-[#74191D] hover:bg-[#5b1317] rounded-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+          >
+            <Play className="w-3.5 h-3.5" />
+            <span>{isRunning ? 'Running Tests...' : 'Execute with Selected Document'}</span>
+          </button>
+        </div>
       </div>
 
       {/* 02. Summary Scorecard */}

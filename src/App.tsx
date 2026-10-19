@@ -46,6 +46,7 @@ import { ContextInspector } from './components/ContextInspector';
 import { Workspace } from './components/Workspace';
 import { InvestigationDesk } from './components/InvestigationDesk';
 import { ProvenanceGraph } from './components/ProvenanceGraph';
+import { AuditLogView } from './components/AuditLogView';
 import { PaperIntake } from './components/PaperIntake';
 import { EvidenceViewer } from './components/EvidenceViewer';
 import { ClaimLedger } from './components/ClaimLedger';
@@ -1153,6 +1154,7 @@ export default function App() {
             )}
 
             {currentTab === 'selftest' && <SelfTestRunner />}
+            {currentTab === 'audit' && <AuditLogView />}
           </main>
 
           {/* 04. RIGHT: Contextual Inspector (310px where viewport allows) */}

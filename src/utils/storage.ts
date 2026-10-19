@@ -1264,3 +1264,66 @@ export function resetToDemoWorkspace(): {
     scheduledPosts: DEFAULT_SCHEDULED_POSTS,
   };
 }
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  userEmail: string;
+  userName: string;
+  role: string;
+  action: string;
+  details: string;
+}
+
+export function getSavedAuditLogs(): AuditLogEntry[] {
+  try {
+    const raw = localStorage.getItem('steer_all_users_audit_logs');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [
+    {
+      id: 'log_1',
+      timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
+      userEmail: 'topmostproffesor234@gmail.com',
+      userName: 'Dr. Raunak Roy',
+      role: 'Admin',
+      action: 'SYSTEM_INIT',
+      details: 'Initialized Steer Evidence Studio & Cloud PostgreSQL synchronization.',
+    },
+    {
+      id: 'log_2',
+      timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+      userName: 'Dr. Priya Sharma',
+      userEmail: 'priya.sharma@steerclub.com',
+      role: 'Medical Reviewer',
+      action: 'CLAIM_VERIFICATION',
+      details: 'Approved 3 core metabolic claims against NEJM STEP-1 trial evidence passages.',
+    },
+    {
+      id: 'log_3',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      userName: 'Arjun Mehta',
+      userEmail: 'arjun.mehta@steerclub.com',
+      role: 'Content Creator',
+      action: 'CAROUSEL_GENERATION',
+      details: 'Generated and scheduled 7-day calendar editorial deliverables for Instagram & LinkedIn.',
+    },
+  ];
+}
+
+export function saveAuditLogEntry(entry: Omit<AuditLogEntry, 'id' | 'timestamp'>) {
+  try {
+    const logs = getSavedAuditLogs();
+    const newEntry: AuditLogEntry = {
+      ...entry,
+      id: 'log_' + Date.now() + Math.random().toString(36).substring(2, 5),
+      timestamp: new Date().toISOString(),
+    };
+    const updated = [newEntry, ...logs].slice(0, 100);
+    localStorage.setItem('steer_all_users_audit_logs', JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+}
+

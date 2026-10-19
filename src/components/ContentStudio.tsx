@@ -224,7 +224,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
         : scene.voiceover_script;
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 0.95;
+    utterance.rate = 1.35;
     utterance.pitch = 1.0;
     speechRef.current = utterance;
     window.speechSynthesis.speak(utterance);
