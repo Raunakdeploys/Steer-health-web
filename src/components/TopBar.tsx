@@ -28,6 +28,7 @@ interface TopBarProps {
   onQuickAction?: () => void;
   quickActionLabel?: string;
   onOpenAuthModal?: () => void;
+  onOpenSimulator?: () => void;
 }
 
 const TAB_TITLES: Record<ActiveTab, { title: string; subtitle: string }> = {
@@ -43,6 +44,7 @@ const TAB_TITLES: Record<ActiveTab, { title: string; subtitle: string }> = {
   report: { title: 'Evidence Report', subtitle: 'Printable Audit Trail & Compliance' },
   selftest: { title: 'Validation Engine', subtitle: '12-Rule Deterministic Self-Tests' },
   audit: { title: 'Audit Logs', subtitle: 'System Governance & Multi-User Trail' },
+  media: { title: 'AI Media & Grounding Lab', subtitle: 'Veo 3 Video, Nano Banana 2.1 & Search Grounding' },
 };
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -56,6 +58,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onQuickAction,
   quickActionLabel,
   onOpenAuthModal,
+  onOpenSimulator,
 }) => {
   const { user, signOutUser, loading: authLoading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -106,6 +109,19 @@ export const TopBar: React.FC<TopBarProps> = ({
             >
               <span>{quickActionLabel}</span>
               <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Trial Simulator Wow Factor Button */}
+          {onOpenSimulator && (
+            <button
+              onClick={onOpenSimulator}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#C04E2A] hover:bg-[#a84021] text-[#FFFDF9] text-xs font-bold rounded-xs shadow-xs transition-all cursor-pointer"
+              title="Launch Live Clinical Trial Simulator & Patient Twin"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#F5EBDF]" />
+              <span className="hidden sm:inline">🧠 Trial Simulator</span>
+              <span className="sm:hidden">Simulator</span>
             </button>
           )}
 

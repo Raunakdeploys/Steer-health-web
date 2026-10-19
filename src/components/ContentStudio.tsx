@@ -71,6 +71,7 @@ interface ContentStudioProps {
   onFormatTabChange?: (tab: 'carousel' | 'static' | 'reel' | 'caption') => void;
   onScheduleDeliverable?: (deliverable: CarouselContent | StaticPostContent | ReelContent, format: 'CAROUSEL' | 'STATIC' | 'REEL') => any;
   onNavigateToSchedule?: () => void;
+  onNavigateToMediaLab?: () => void;
 }
 
 export const ContentStudio: React.FC<ContentStudioProps> = ({
@@ -92,6 +93,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   onFormatTabChange,
   onScheduleDeliverable,
   onNavigateToSchedule,
+  onNavigateToMediaLab,
 }) => {
   const [activeTab, setActiveTab] = useState<'carousel' | 'static' | 'reel' | 'caption'>(
     activeFormatTab || 'carousel'
@@ -808,6 +810,17 @@ CITATION: ${slide.source_citation || activePaper.journal} · steerclub.com`;
             {copiedCanvaTokens ? <Check className="w-3 h-3 text-[#416C49]" /> : <Copy className="w-3 h-3 text-[#C04E2A]" />}
             <span>{copiedCanvaTokens ? 'Tokens Copied!' : 'Canva JSON Tokens'}</span>
           </button>
+
+          {onNavigateToMediaLab && (
+            <button
+              onClick={onNavigateToMediaLab}
+              title="Open Veo 3 Video, Nano Banana 2.1 Graphics & Search Grounding Lab"
+              className="px-3 py-1 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-[11px] font-mono font-bold rounded-xs flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+            >
+              <Sparkles className="w-3 h-3 text-[#C04E2A]" />
+              <span>Veo 3 & Nano Banana Lab →</span>
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,19 +1,25 @@
 # Steer Evidence Studio - Render Deployment Guide
 
-## Render Optimization & Memory Management
-To deploy successfully on Render (including free tier 512MB RAM constraints):
+## Render Optimization & Production Architecture
+To deploy successfully on Render (including free tier 512MB RAM constraints and standard Web Services):
 
-1. **Build Configuration**:
-   - Build Command: `npm install && npm run build`
-   - Start Command: `npm start` (runs `tsx server.ts`)
-   - Node Version: Node 20+
+### 1. Render Web Service Settings
+- **Environment**: Node
+- **Build Command**: `npm run build`
+- **Start Command**: `npm start` (executes `node server.ts` natively)
+- **Health Check Path**: `/api/health`
+- **Node Version**: `>=20.0.0` (specified in `package.json` engines)
 
-2. **Memory Optimization**:
-   - `vite.config.ts` utilizes `rollupOptions` manual chunking (`vendor`, `firebase`, `pdf`) to keep individual bundle sizes small and prevent OOM (Out Of Memory) errors during Vite builds.
-   - Esbuild minification ensures fast, low-overhead compilation.
+### 2. Automated Blueprint Deployment
+This repository includes a `render.yaml` configuration. When creating a new Web Service or Blueprint on Render:
+1. Connect repository `Raunakdeploys/Steer-health-web`.
+2. Render will automatically detect `render.yaml` with build and start settings.
+3. Configure environment variables in the Render Dashboard:
+   - `GEMINI_API_KEY`: Google GenAI API key for medical claim extraction and content remixing.
+   - `DATABASE_URL` (optional): PostgreSQL database URL if connecting to an external database.
+   - `NODE_ENV`: Set to `production` (handled automatically by `render.yaml`).
 
-3. **Environment Variables on Render**:
-   - `PORT`: `3000` (or automatically assigned by Render)
-   - `GEMINI_API_KEY`: Your Google GenAI API key
-   - `FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, etc. (if using Firebase backend)
-   - `DATABASE_URL`: PostgreSQL connection string (if using SQL backend)
+### 3. Memory & Static Asset Optimization
+- `vite.config.ts` utilizes `rollupOptions` manual chunking (`vendor`, `firebase`, `pdf`) to isolate large libraries, keep peak memory well under 512MB, and prevent Out-Of-Memory (OOM) failures during production builds.
+- Express serves pre-compressed static assets from `dist/` with single-page app (SPA) fallback routing for non-API requests.
+- Full offline fallback mode: If external database or AI services are unavailable, the studio gracefully runs on the embedded synthetic clinical trial dataset (GLP-1 muscle preservation, South Asian metabolic phenotype, and adaptive thermogenesis).

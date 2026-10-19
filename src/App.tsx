@@ -56,6 +56,8 @@ import { SubmissionPacket } from './components/SubmissionPacket';
 import { EvidenceReportView } from './components/EvidenceReportView';
 import { SelfTestRunner } from './components/SelfTestRunner';
 import { GoogleAuthModal } from './components/GoogleAuthModal';
+import { ClinicalTrialSimulator } from './components/ClinicalTrialSimulator';
+import { AiMediaStudio } from './components/AiMediaStudio';
 import { propagateClaimChange } from './utils/impactAnalysis';
 
 export default function App() {
@@ -66,6 +68,7 @@ export default function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
   // Persistence State
   const [papers, setPapers] = useState<PaperRecord[]>([]);
@@ -903,6 +906,7 @@ export default function App() {
               : undefined
           }
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onOpenSimulator={() => setIsSimulatorOpen(true)}
         />
 
         {/* 03. Split Work Canvas: Center Content + Right Contextual Inspector */}
@@ -1095,6 +1099,7 @@ export default function App() {
                 onSelectPaper={handleSwitchPaper}
                 onScheduleDeliverable={handleScheduleDeliverable}
                 onNavigateToSchedule={() => setCurrentTab('schedule')}
+                onNavigateToMediaLab={() => setCurrentTab('media')}
               />
             )}
 
@@ -1156,6 +1161,14 @@ export default function App() {
 
             {currentTab === 'selftest' && <SelfTestRunner />}
             {currentTab === 'audit' && <AuditLogView />}
+            {currentTab === 'media' && (
+              <AiMediaStudio
+                activePaper={activePaper}
+                onAddClaim={handleAddClaim}
+                onNavigateToStudio={() => setCurrentTab('studio')}
+                onNavigateToDesk={() => setCurrentTab('desk')}
+              />
+            )}
           </main>
 
           {/* 04. RIGHT: Contextual Inspector (310px where viewport allows) */}
@@ -1198,6 +1211,14 @@ export default function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         sqlSyncStatus={sqlSyncStatus}
+      />
+
+      {/* Wow Factor: Live Clinical Trial & Patient Twin Simulator */}
+      <ClinicalTrialSimulator
+        isOpen={isSimulatorOpen}
+        onClose={() => setIsSimulatorOpen(false)}
+        activePaper={activePaper}
+        claims={currentPaperClaims}
       />
     </div>
   );

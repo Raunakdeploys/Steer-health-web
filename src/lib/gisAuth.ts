@@ -120,3 +120,46 @@ export async function renderGoogleSignInButton(
     onError?.(err);
   }
 }
+
+/**
+ * Programmatically triggers the Google Identity Services One Tap / Account Chooser prompt.
+ */
+export async function promptGoogleSignIn(
+  onSuccess: (googleIdToken: string) => void,
+  onError?: (err: any) => void
+): Promise<void> {
+  try {
+    await loadGisScript();
+
+    if (!window.google?.accounts?.id) {
+      throw new Error('Google Identity Services SDK is not available');
+    }
+
+    const clientId = firebaseConfig.oAuthClientId;
+    if (!clientId) {
+      throw new Error('No oAuthClientId configured in firebase-applet-config.json');
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (response: any) => {
+        if (response && response.credential) {
+          onSuccess(response.credential);
+        } else {
+          onError?.(new Error('Google did not return a valid credential'));
+        }
+      },
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+
+    window.google.accounts.id.prompt((notification: any) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        onError?.(new Error(`Google prompt skipped: ${notification.getNotDisplayedReason() || notification.getSkippedReason() || 'popup_blocked'}`));
+      }
+    });
+  } catch (err) {
+    console.error('Error prompting Google Sign-In:', err);
+    onError?.(err);
+  }
+}

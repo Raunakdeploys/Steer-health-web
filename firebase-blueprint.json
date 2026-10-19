@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Profile",
+      "description": "Authenticated researcher, doctor, or reviewer profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "provider": { "type": "string" },
+        "lastSeenAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "paper": {
+      "title": "Scientific Paper",
+      "description": "Ingested scientific paper with metadata and source text",
+      "type": "object",
+      "properties": {
+        "paper_id": { "type": "string" },
+        "title": { "type": "string" },
+        "authors": { "type": "string" },
+        "journal": { "type": "string" },
+        "year": { "type": "string" },
+        "doi": { "type": "string" },
+        "total_pages": { "type": "number" },
+        "uploaded_at": { "type": "string", "format": "date-time" },
+        "is_metadata_verified": { "type": "boolean" }
+      },
+      "required": ["paper_id", "title"]
+    },
+    "claim": {
+      "title": "Empirical Health Claim",
+      "description": "Extracted claim tied to verbatim evidence passages and doctor review status",
+      "type": "object",
+      "properties": {
+        "claim_id": { "type": "string" },
+        "paper_id": { "type": "string" },
+        "claim_text": { "type": "string" },
+        "exact_supporting_quote": { "type": "string" },
+        "review_status": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["claim_id", "paper_id", "claim_text", "review_status"]
+    },
+    "deliverable": {
+      "title": "Social Content Deliverable",
+      "description": "Generated carousel, static post, or reel deliverable",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "paperId": { "type": "string" },
+        "deliverableType": { "type": "string" },
+        "payload": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "paperId", "deliverableType"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profile document storing authentication and settings"
+    },
+    "/users/{userId}/papers/{paperId}": {
+      "schema": "paper",
+      "description": "Collection of ingested research papers belonging to the user"
+    },
+    "/users/{userId}/claims/{claimId}": {
+      "schema": "claim",
+      "description": "Claims extracted and verified under the user's research workspace"
+    },
+    "/users/{userId}/deliverables/{deliverableId}": {
+      "schema": "deliverable",
+      "description": "Generated editorial and social content deliverables"
+    }
+  }
+}

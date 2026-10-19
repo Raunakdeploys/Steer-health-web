@@ -17,6 +17,7 @@ import {
   Compass,
   ShieldCheck,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 
 export type ActiveTab =
@@ -31,7 +32,8 @@ export type ActiveTab =
   | 'source'
   | 'report'
   | 'selftest'
-  | 'audit';
+  | 'audit'
+  | 'media';
 
 interface NavigationSidebarProps {
   currentTab: ActiveTab;
@@ -100,6 +102,13 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
       label: 'Content Studio',
       icon: Layers,
       badge: 'Feed & Reels',
+    },
+    {
+      id: 'media' as ActiveTab,
+      label: 'AI Media & Grounding',
+      icon: Sparkles,
+      badge: 'Veo 3',
+      badgeHighlight: true,
     },
   ];
 
