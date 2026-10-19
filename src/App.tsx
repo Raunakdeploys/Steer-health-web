@@ -635,7 +635,7 @@ export default function App() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       const response = await fetch('/api/generate-content', {
         method: 'POST',
@@ -658,7 +658,7 @@ export default function App() {
         }
       }
     } catch (fetchErr) {
-      console.warn('Backend API /api/generate-content timed out or unreachable in deployment, using instant client synthesis engine:', fetchErr);
+      console.warn('Backend API /api/generate-content notice:', fetchErr);
     }
 
     // Resilient fallback: If server unavailable or failed in deployment, generate verified Steer content right in browser
@@ -673,29 +673,27 @@ export default function App() {
 
     const { carousel: newCarousel, static_post: newStatic, reel: newReel } = deliverables;
 
-    // Update state & storage asynchronously to free up the UI thread immediately
-    setTimeout(() => {
-      const updatedCarousels = [
-        newCarousel,
-        ...carousels.filter((c) => c.paper_id !== activePaper.paper_id),
-      ];
-      setCarousels(updatedCarousels);
-      saveCarousels(updatedCarousels);
+    // Directly update state & storage so UI re-renders with fresh drafts immediately
+    const updatedCarousels = [
+      newCarousel,
+      ...carousels.filter((c) => c.paper_id !== activePaper.paper_id),
+    ];
+    setCarousels(updatedCarousels);
+    saveCarousels(updatedCarousels);
 
-      const updatedPosts = [
-        newStatic,
-        ...staticPosts.filter((s) => s.paper_id !== activePaper.paper_id),
-      ];
-      setStaticPosts(updatedPosts);
-      saveStaticPosts(updatedPosts);
+    const updatedPosts = [
+      newStatic,
+      ...staticPosts.filter((s) => s.paper_id !== activePaper.paper_id),
+    ];
+    setStaticPosts(updatedPosts);
+    saveStaticPosts(updatedPosts);
 
-      const updatedReels = [
-        newReel,
-        ...reels.filter((r) => r.paper_id !== activePaper.paper_id),
-      ];
-      setReels(updatedReels);
-      saveReels(updatedReels);
-    }, 0);
+    const updatedReels = [
+      newReel,
+      ...reels.filter((r) => r.paper_id !== activePaper.paper_id),
+    ];
+    setReels(updatedReels);
+    saveReels(updatedReels);
 
     // Automatically update Content Calendar with latest deliverables
     syncCalendarWithDeliverables(activePaper.paper_id, activePaper.title, newCarousel, newStatic, newReel);

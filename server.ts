@@ -88,6 +88,23 @@ if (apiKey) {
     },
   });
 }
+
+export function getAiClient(): GoogleGenAI | null {
+  if (aiClient) return aiClient;
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || process.env.API_KEY || '';
+  if (key) {
+    aiClient = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+    return aiClient;
+  }
+  return null;
+}
 console.log('aiClient initialized:', !!aiClient);
 
 /**
@@ -369,10 +386,11 @@ app.post('/api/parse-pdf', async (req: Request, res: Response) => {
     const paperId = 'paper_' + Date.now().toString(36);
 
     // If Gemini client is active, process multimodal PDF
-    if (aiClient) {
       try {
-        const response = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+        const client = getAiClient() || aiClient;
+        if (!client) throw new Error('AI client not initialized');
+        const response = await client.models.generateContent({
+          model: 'gemini-3.8-flash',
           contents: [
             {
               role: 'user',
@@ -436,7 +454,6 @@ Return JSON: { "title": string, "authors": string, "journal": string, "year": st
       } catch (geminiPdfErr) {
         console.warn('Gemini PDF multimodal parsing error, falling back to buffer decoding:', geminiPdfErr);
       }
-    }
 
     // Buffer stream fallback
     const buffer = Buffer.from(base64, 'base64');
@@ -499,10 +516,11 @@ app.post('/api/ingest-url', async (req: Request, res: Response) => {
 
     const paperId = 'paper_url_' + Date.now().toString(36);
 
-    if (aiClient) {
       try {
-        const response = await aiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
+        const client = getAiClient() || aiClient;
+        if (!client) throw new Error('AI client not initialized');
+        const response = await client.models.generateContent({
+          model: 'gemini-3.8-flash',
           contents: [
             {
               role: 'user',
@@ -562,7 +580,6 @@ Return JSON with schema: { "title": string, "authors": string, "journal": string
       } catch (geminiUrlErr) {
         console.warn('Gemini URL ingestion error:', geminiUrlErr);
       }
-    }
 
     const cleanName = url.replace(/https?:\/\//i, '').replace(/[\/?#].*$/, '');
     const paper = {
@@ -690,8 +707,13 @@ ${passageContext}
 
 Extract 3 to 6 distinct, structured health and physiological claims derived strictly from the passages above. Return a JSON array matching the specified schema.`;
 
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-2.5-flash',
+    const client = getAiClient() || aiClient;
+    if (!client) {
+      return res.status(503).json({ error: 'AI service unavailable - missing API key' });
+    }
+
+    const response = await client.models.generateContent({
+      model: 'gemini-3.8-flash',
       contents: [
         {
           role: 'user',
@@ -907,8 +929,13 @@ ${auditContext}
 
 Audit each claim independently. Return a JSON array matching the schema with one object per claim.`;
 
-    const response = await aiClient.models.generateContent({
-      model: 'gemini-2.5-flash',
+    const client = getAiClient() || aiClient;
+    if (!client) {
+      return res.status(503).json({ error: 'AI service unavailable - missing API key' });
+    }
+
+    const response = await client.models.generateContent({
+      model: 'gemini-3.8-flash',
       contents: [
         {
           role: 'user',
@@ -1252,7 +1279,8 @@ Known Limitations: ${c.limitations}`
       return { carousel: fallbackCarousel, static_post: fallbackStatic, reel: fallbackReel };
     };
 
-    if (!aiClient) {
+    const client = getAiClient();
+    if (!client) {
       const fallback = generateDynamicFallback(paper_id, paper_title, approved_claims, variationIndex);
       return res.json(fallback);
     }
@@ -1294,8 +1322,8 @@ ${claimsContext}
 Generate the synchronized educational package adhering to the provided JSON schema.`;
 
     try {
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
+      const response = await client.models.generateContent({
+        model: 'gemini-3.8-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
@@ -1653,9 +1681,21 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[steer / Evidence Studio] Server running at http://0.0.0.0:${PORT}`);
+  const primaryPort = 3000;
+  app.listen(primaryPort, '0.0.0.0', () => {
+    console.log(`[steer / Evidence Studio] Server running at http://0.0.0.0:${primaryPort}`);
   });
+
+  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
+  if (envPort && envPort !== primaryPort) {
+    try {
+      app.listen(envPort, '0.0.0.0', () => {
+        console.log(`[steer / Evidence Studio] Server also listening on Cloud Run port http://0.0.0.0:${envPort}`);
+      });
+    } catch (err) {
+      console.warn(`Could not bind secondary deployment port ${envPort}:`, err);
+    }
+  }
 }
 
 startServer();

@@ -306,6 +306,9 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
       const nextVar = (generationVariationCounter + 1) % 3;
       setGenerationVariationCounter(nextVar);
       await onGenerateAllContent(nextVar);
+      setCurrentSlideIndex(0);
+    } catch (err) {
+      console.error('Error during content generation:', err);
     } finally {
       setIsGenerating(false);
     }
