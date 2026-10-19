@@ -372,7 +372,7 @@ app.post('/api/parse-pdf', async (req: Request, res: Response) => {
     if (aiClient) {
       try {
         const response = await aiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: [
             {
               role: 'user',
@@ -502,7 +502,7 @@ app.post('/api/ingest-url', async (req: Request, res: Response) => {
     if (aiClient) {
       try {
         const response = await aiClient.models.generateContent({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           contents: [
             {
               role: 'user',
@@ -691,7 +691,7 @@ ${passageContext}
 Extract 3 to 6 distinct, structured health and physiological claims derived strictly from the passages above. Return a JSON array matching the specified schema.`;
 
     const response = await aiClient.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       contents: [
         {
           role: 'user',
@@ -908,7 +908,7 @@ ${auditContext}
 Audit each claim independently. Return a JSON array matching the schema with one object per claim.`;
 
     const response = await aiClient.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: 'gemini-2.5-flash',
       contents: [
         {
           role: 'user',
@@ -1295,7 +1295,7 @@ Generate the synchronized educational package adhering to the provided JSON sche
 
     try {
       const response = await aiClient.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',

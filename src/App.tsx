@@ -634,6 +634,9 @@ export default function App() {
     let deliverables: { carousel: CarouselContent; static_post: StaticPostContent; reel: ReelContent } | null = null;
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
       const response = await fetch('/api/generate-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -643,7 +646,10 @@ export default function App() {
           approved_claims: claimsToUse,
           variation: variationSeed,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -652,7 +658,7 @@ export default function App() {
         }
       }
     } catch (fetchErr) {
-      console.warn('Backend API /api/generate-content not reached, using resilient client synthesis engine:', fetchErr);
+      console.warn('Backend API /api/generate-content timed out or unreachable in deployment, using instant client synthesis engine:', fetchErr);
     }
 
     // Resilient fallback: If server unavailable or failed in deployment, generate verified Steer content right in browser

@@ -109,6 +109,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   };
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationVariationCounter, setGenerationVariationCounter] = useState(0);
   const [isVideoRecording, setIsVideoRecording] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoStatusText, setVideoStatusText] = useState('');
@@ -302,7 +303,9 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      await onGenerateAllContent();
+      const nextVar = (generationVariationCounter + 1) % 3;
+      setGenerationVariationCounter(nextVar);
+      await onGenerateAllContent(nextVar);
     } finally {
       setIsGenerating(false);
     }
