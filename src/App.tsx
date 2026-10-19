@@ -666,29 +666,36 @@ export default function App() {
       deliverables = generateClientSteerContent(activePaper, claimsToUse, variationSeed);
     }
 
+    if (!deliverables) {
+      console.error('Failed to generate deliverables even after fallback.');
+      return;
+    }
+
     const { carousel: newCarousel, static_post: newStatic, reel: newReel } = deliverables;
 
-    // Update state & storage
-    const updatedCarousels = [
-      newCarousel,
-      ...carousels.filter((c) => c.paper_id !== activePaper.paper_id),
-    ];
-    setCarousels(updatedCarousels);
-    saveCarousels(updatedCarousels);
+    // Update state & storage asynchronously to free up the UI thread immediately
+    setTimeout(() => {
+      const updatedCarousels = [
+        newCarousel,
+        ...carousels.filter((c) => c.paper_id !== activePaper.paper_id),
+      ];
+      setCarousels(updatedCarousels);
+      saveCarousels(updatedCarousels);
 
-    const updatedPosts = [
-      newStatic,
-      ...staticPosts.filter((s) => s.paper_id !== activePaper.paper_id),
-    ];
-    setStaticPosts(updatedPosts);
-    saveStaticPosts(updatedPosts);
+      const updatedPosts = [
+        newStatic,
+        ...staticPosts.filter((s) => s.paper_id !== activePaper.paper_id),
+      ];
+      setStaticPosts(updatedPosts);
+      saveStaticPosts(updatedPosts);
 
-    const updatedReels = [
-      newReel,
-      ...reels.filter((r) => r.paper_id !== activePaper.paper_id),
-    ];
-    setReels(updatedReels);
-    saveReels(updatedReels);
+      const updatedReels = [
+        newReel,
+        ...reels.filter((r) => r.paper_id !== activePaper.paper_id),
+      ];
+      setReels(updatedReels);
+      saveReels(updatedReels);
+    }, 0);
 
     // Automatically update Content Calendar with latest deliverables
     syncCalendarWithDeliverables(activePaper.paper_id, activePaper.title, newCarousel, newStatic, newReel);
