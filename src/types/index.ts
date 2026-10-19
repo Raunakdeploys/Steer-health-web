@@ -176,6 +176,8 @@ export interface ReelScene {
   voiceover_script: string;
   subtitle_text: string;
   visual_cue: string;
+  visual_b_roll?: string;
+  music_mood?: string;
   b_roll_type?: 'metabolic_animation' | 'morning_walk' | 'indian_plate' | 'doctor_consult' | 'dexa_scan';
   hinglish_voiceover?: string;
   hinglish_subtitle?: string;

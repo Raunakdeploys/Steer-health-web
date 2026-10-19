@@ -249,6 +249,20 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
     }
   };
 
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const nextVar = (generationVariationCounter + 1) % 3;
+      setGenerationVariationCounter(nextVar);
+      await onGenerateAllContent(nextVar);
+      setCurrentSlideIndex(0);
+    } catch (err) {
+      console.error('Error during content generation:', err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   if (!activePaper) {
     return (
       <div className="max-w-3xl mx-auto py-16 text-center text-[#B58777]">
@@ -299,20 +313,6 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
 
   const currentSlide: CarouselSlide | undefined = carousel?.slides[currentSlideIndex];
   const isSlideInvalidated = !!currentSlide?.invalidation_flag;
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const nextVar = (generationVariationCounter + 1) % 3;
-      setGenerationVariationCounter(nextVar);
-      await onGenerateAllContent(nextVar);
-      setCurrentSlideIndex(0);
-    } catch (err) {
-      console.error('Error during content generation:', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   const handleAcknowledgeSlideReverification = (index: number) => {
     if (!carousel) return;

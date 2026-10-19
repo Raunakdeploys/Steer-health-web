@@ -99,7 +99,7 @@ export const ProvenanceGraph: React.FC<ProvenanceGraphProps> = ({
         type: 'PASSAGE',
         label: `Passage p. ${p.pdf_page_index} (${p.section})`,
         sublabel: p.verbatim_text.substring(0, 90) + '...',
-        status: p.extraction_status === 'VERBATIM_VERIFIED' ? 'OK' : 'OK',
+        status: p.extraction_status === 'OK' ? 'OK' : 'FLAG',
         entityId: p.evidence_id,
         metadata: p,
       };
@@ -154,7 +154,7 @@ export const ProvenanceGraph: React.FC<ProvenanceGraphProps> = ({
     const validationNodes: ProvenanceNode[] = paperClaims.map((c, idx) => {
       const vNodeId = `node_val_${c.claim_id}`;
       const hasBlocker = c.validation_findings?.some((f) => f.severity === 'BLOCKER');
-      const hasWarning = c.validation_findings?.some((f) => f.severity === 'WARNING');
+      const hasWarning = c.validation_findings?.some((f) => f.severity === 'FLAG');
       const outcome = hasBlocker ? 'FAIL' : hasWarning ? 'FLAGGED' : 'PASS';
 
       const vNode: ProvenanceNode = {
@@ -625,7 +625,7 @@ export const ProvenanceGraph: React.FC<ProvenanceGraphProps> = ({
                   fontSize="8.5"
                   fontFamily="sans-serif"
                 >
-                  {node.sublabel.length > 40 ? node.sublabel.substring(0, 38) + '...' : node.sublabel}
+                  {node.sublabel ? (node.sublabel.length > 40 ? node.sublabel.substring(0, 38) + '...' : node.sublabel) : ''}
                 </text>
               </g>
             );

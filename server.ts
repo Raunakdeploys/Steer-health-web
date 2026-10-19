@@ -1169,7 +1169,6 @@ Known Limitations: ${c.limitations}`
             body_text: `Never chase rapid aesthetic fixes. The true clinical protocol focuses on biomarker balance, habit preservation, and a planned exit strategy.`,
             hinglish_headline: `"Reel dekh kar shuru mat karo, doctor se baat karo."`,
             hinglish_body: `Harr medicine aur protocol ka ek scientific reason aur exit plan hona chahiye taaki result hamesha ke liye rahe.`,
-            theme_variant: 'cream' as const,
             founder_note: 'Dr. Steer Clinical Protocol',
             mapped_claim_ids: [thirdClaim.claim_id],
           },
@@ -1650,9 +1649,11 @@ app.post('/api/batch-pipeline', async (req: Request, res: Response) => {
 
 // Setup Vite middleware in dev or static files in production
 async function startServer() {
-  const isProduction = process.env.NODE_ENV === 'production';
   const distPath = path.resolve(__dirname, 'dist');
   const indexPath = path.join(distPath, 'index.html');
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    (fs.existsSync(indexPath) && process.env.PORT !== undefined && process.env.PORT !== '3000');
 
   if (isProduction) {
     if (!fs.existsSync(indexPath)) {
@@ -1681,21 +1682,10 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  const primaryPort = 3000;
-  app.listen(primaryPort, '0.0.0.0', () => {
-    console.log(`[steer / Evidence Studio] Server running at http://0.0.0.0:${primaryPort}`);
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`[steer / Evidence Studio] Server running on port ${port}`);
   });
-
-  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
-  if (envPort && envPort !== primaryPort) {
-    try {
-      app.listen(envPort, '0.0.0.0', () => {
-        console.log(`[steer / Evidence Studio] Server also listening on Cloud Run port http://0.0.0.0:${envPort}`);
-      });
-    } catch (err) {
-      console.warn(`Could not bind secondary deployment port ${envPort}:`, err);
-    }
-  }
 }
 
 startServer();

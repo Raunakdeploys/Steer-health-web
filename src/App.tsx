@@ -217,7 +217,7 @@ export default function App() {
       );
     }
 
-    setCurrentTab('evidence');
+    setCurrentTab('source');
 
     // Automatically trigger AI claim extraction and content generation for the newly uploaded document
     try {
@@ -783,7 +783,7 @@ export default function App() {
 
   const handleViewSourcePassage = (evidenceId: string) => {
     setHighlightEvidenceId(evidenceId);
-    setCurrentTab('evidence');
+    setCurrentTab('source');
     setTimeout(() => {
       const el = document.getElementById(evidenceId);
       if (el) {
@@ -838,7 +838,7 @@ export default function App() {
           quickActionLabel={
             currentTab === 'papers'
               ? 'Doctor Review Gate →'
-              : currentTab === 'review' || currentTab === 'desk' || currentTab === 'graph'
+              : currentTab === 'review' || currentTab === 'desk' || currentTab === 'provenance'
               ? 'Content Studio →'
               : currentTab === 'studio'
               ? '7-Day Calendar →'
@@ -851,7 +851,7 @@ export default function App() {
           onQuickAction={
             currentTab === 'papers'
               ? () => setCurrentTab('review')
-              : currentTab === 'review' || currentTab === 'desk' || currentTab === 'graph'
+              : currentTab === 'review' || currentTab === 'desk' || currentTab === 'provenance'
               ? () => setCurrentTab('studio')
               : currentTab === 'studio'
               ? () => setCurrentTab('schedule')
@@ -925,7 +925,7 @@ export default function App() {
               />
             )}
 
-            {currentTab === 'graph' && (
+            {currentTab === 'provenance' && (
               <ProvenanceGraph
                 activePaper={activePaper}
                 passages={passages}
@@ -955,7 +955,7 @@ export default function App() {
               />
             )}
 
-            {currentTab === 'evidence' && (
+            {currentTab === 'source' && (
               <EvidenceViewer
                 activePaper={activePaper}
                 passages={passages}
