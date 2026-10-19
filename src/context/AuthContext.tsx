@@ -192,6 +192,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
 
     try {
+      if (!googleIdToken) {
+        throw new Error('Invalid authentication token.');
+      }
+
       // Step A: Attempt Firebase credential sign-in
       const credential = GoogleAuthProvider.credential(googleIdToken);
       const userCredential = await signInWithCredential(auth, credential);
@@ -211,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       return true;
     } catch (firebaseErr: any) {
-      console.warn('Firebase credential exchange encountered expected preview constraint:', firebaseErr?.code, firebaseErr?.message);
+      console.warn('Firebase credential exchange encountered:', firebaseErr?.code, firebaseErr?.message);
 
       // Step B: Robust Fallback - Parse standard JWT payload from Google Identity Services
       const payload = parseJwtPayload(googleIdToken);
@@ -236,7 +240,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       }
 
-      setError('Could not verify Google credentials. Please try signing in again or using Guest mode.');
+      // User-friendly error mapping
+      let userMessage = 'Authentication failed. Please try again.';
+      if (firebaseErr?.code === 'auth/invalid-credential') {
+        userMessage = 'The Google token provided is invalid or expired. Please sign in again.';
+      } else if (firebaseErr?.code === 'auth/operation-not-allowed') {
+        userMessage = 'Google Sign-In is not enabled for this project.';
+      }
+
+      setError(userMessage);
       setLoading(false);
       return false;
     }

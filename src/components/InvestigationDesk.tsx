@@ -679,14 +679,14 @@ export const InvestigationDesk: React.FC<InvestigationDeskProps> = ({
                     onClick={() => handleAuditSingleClaimViaGemini(activeClaim)}
                     disabled={isAuditing}
                     className="w-full py-1.5 px-3 text-xs font-semibold bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#661414] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                    title="Audit this claim against evidence passages with Gemini 3.8 Flash"
+                    title="Audit this claim against evidence passages with Gemini Flash"
                   >
                     {isAuditing ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C04E2A]" />
                     ) : (
                       <Sparkles className="w-3.5 h-3.5 text-[#C04E2A]" />
                     )}
-                    <span>Audit with Gemini 3.8 Flash</span>
+                    <span>Audit with Gemini Flash</span>
                   </button>
 
                   <div className="grid grid-cols-2 gap-2">

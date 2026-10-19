@@ -176,7 +176,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
     }
   };
 
-  // Automated Claim Audit via Gemini 3.8 Flash Clinical Engine
+  // Automated Claim Audit via Gemini Flash Clinical Engine
   const handleAutoAuditClaimsViaGemini = async () => {
     if (paperClaims.length === 0) {
       alert('No claims found for this paper to audit.');
@@ -217,12 +217,12 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
           (c: any) => c.review_status === 'FLAGGED_CONCERN' || c.review_status === 'FLAGGED'
         ).length;
         setAuditSummary(
-          `Gemini 3.8 Flash Clinical Audit Complete: ${approved} claim(s) doctor-approved, ${flagged} claim(s) flagged for editorial review.`
+          `Gemini Flash Clinical Audit Complete: ${approved} claim(s) doctor-approved, ${flagged} claim(s) flagged for editorial review.`
         );
       }
     } catch (err: any) {
       console.error(err);
-      setAiError(err.message || 'Auto-audit communication error with Gemini 3.8 Flash.');
+      setAiError(err.message || 'Auto-audit communication error with Gemini Flash.');
     } finally {
       setIsAuditingClaims(false);
     }
@@ -427,14 +427,14 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
             onClick={handleAutoAuditClaimsViaGemini}
             disabled={isAuditingClaims || paperClaims.length === 0}
             className="px-3.5 py-1.5 bg-[#661414] hover:bg-[#4a0d0d] disabled:opacity-50 text-[#F5EBDF] rounded-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-            title="Cross-reference all claims against source passages with Gemini 3.8 Flash and auto-approve verified claims"
+            title="Cross-reference all claims against source passages with Gemini Flash and auto-approve verified claims"
           >
             {isAuditingClaims ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C04E2A]" />
             ) : (
               <ShieldCheck className="w-3.5 h-3.5 text-[#C04E2A]" />
             )}
-            <span>{isAuditingClaims ? 'Auditing with Gemini...' : 'Auto-Audit All (Gemini 3.8 Flash)'}</span>
+            <span>{isAuditingClaims ? 'Auditing with Gemini...' : 'Auto-Audit All (Gemini Flash)'}</span>
           </button>
 
           {approvedCount > 0 && (
@@ -743,14 +743,14 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
                     onClick={() => handleAuditSingleClaimViaGemini(activeClaim)}
                     disabled={isAuditingClaims}
                     className="w-full py-2 px-3 text-xs font-semibold bg-[#FFFDF9] hover:bg-[#F5EFE6] border border-[#DED2C5] text-[#661414] rounded-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                    title="Audit this individual claim with Gemini 3.8 Flash against verbatim source passages"
+                    title="Audit this individual claim with Gemini Flash against verbatim source passages"
                   >
                     {isAuditingClaims ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C04E2A]" />
                     ) : (
                       <Sparkles className="w-3.5 h-3.5 text-[#C04E2A]" />
                     )}
-                    <span>Audit This Claim (Gemini 3.8 Flash)</span>
+                    <span>Audit This Claim (Gemini Flash)</span>
                   </button>
                 </div>
               </div>

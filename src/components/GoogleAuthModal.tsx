@@ -88,7 +88,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
           }
         );
       }
-    }, 100);
+    }, 500);
 
     return () => {
       isMounted = false;
