@@ -43,9 +43,9 @@ Rather than treating health information as something people simply read, Steer e
 
 | Requirement | Resource |
 |---|---|
-| Playable web build | [Open Live Demo](YOUR_LIVE_BUILD_URL) |
-| Walkthrough | [Watch Demo](YOUR_WALKTHROUGH_URL) |
-| Source code | [View GitHub Repository](YOUR_GITHUB_REPOSITORY_URL) |
+| Playable web build | [Open Live Demo](https://steer-health-web.onrender.com/) |
+| Walkthrough | [Watch Demo](https://drive.google.com/file/d/10ek6yR_LQW4aoPN_WIHWp2vCTQa_USsX/view?usp=drive_link) |
+| Source code | [View GitHub Repository](https://github.com/Raunakdeploys/Steer-health-web) |
 | Research and references | Listed below |
 
 The live build should be used to assess the implemented functionality. Features that have not been verified in the submitted version should not be considered complete.
