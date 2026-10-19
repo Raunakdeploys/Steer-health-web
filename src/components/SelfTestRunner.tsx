@@ -272,15 +272,135 @@ export const SelfTestRunner: React.FC = () => {
       testPassages: [baselinePassage, conflictingPassage],
     },
 
-    // Case 8: Fully supported, rigorously qualified claim -> READY_FOR_HUMAN_REVIEW
+    // Case 8: Relative change stated without baseline or timeframe -> FLAGGED
     {
       id: 8,
+      name: 'Relative change stated without baseline or timeframe',
+      expectedStatus: 'FLAGGED',
+      expectedRuleId: 'RULE_5_MISSING_DENOMINATOR',
+      description: 'Naked relative reduction ("dropped by 28%") without comparator, baseline, or duration must be FLAGGED.',
+      testClaim: {
+        claim_id: 'tc_8',
+        paper_id: 'test_paper',
+        claim_text: 'Muscle damage dropped by 28%.',
+        evidence_ids: ['ev_test_p5'],
+        exact_supporting_quote:
+          'In 32 resistance-trained young males, serum creatine kinase was 28% lower at 48 hours in the tart cherry group compared to placebo',
+        population: '32 trained males',
+        study_design: 'RCT',
+        intervention_or_exposure: '',
+        comparison: '',
+        outcome: '',
+        numbers_and_units: '28%',
+        limitations: 'Limited cohort',
+        certainty_notes: '',
+        risk_flags: [],
+        review_status: 'DRAFT',
+        reviewer_note: '',
+        updated_at: new Date().toISOString(),
+      },
+      testPassages: [baselinePassage],
+    },
+
+    // Case 9: Absolute health guarantee without epistemic modesty -> FLAGGED
+    {
+      id: 9,
+      name: 'Absolute health guarantee without caveats',
+      expectedStatus: 'FLAGGED',
+      expectedRuleId: 'RULE_9_ABSOLUTE_LANGUAGE',
+      description: 'Absolutist promises ("completely cures and eliminates all soreness") must be FLAGGED.',
+      testClaim: {
+        claim_id: 'tc_9',
+        paper_id: 'test_paper',
+        claim_text: 'Tart cherry juice completely cures and eliminates all delayed onset muscle soreness.',
+        evidence_ids: ['ev_test_p5'],
+        exact_supporting_quote:
+          'In 32 resistance-trained young males, serum creatine kinase was 28% lower at 48 hours in the tart cherry group compared to placebo',
+        population: '32 resistance-trained males',
+        study_design: 'RCT',
+        intervention_or_exposure: '',
+        comparison: '',
+        outcome: '',
+        numbers_and_units: '28%',
+        limitations: 'Limited cohort',
+        certainty_notes: '',
+        risk_flags: [],
+        review_status: 'DRAFT',
+        reviewer_note: '',
+        updated_at: new Date().toISOString(),
+      },
+      testPassages: [baselinePassage],
+    },
+
+    // Case 10: Study limitations completely omitted -> FLAGGED
+    {
+      id: 10,
+      name: 'Study limitations completely omitted',
+      expectedStatus: 'FLAGGED',
+      expectedRuleId: 'RULE_8_REMOVED_LIMITATION',
+      description: 'Clinical findings presented with limitations omitted or marked NOT REPORTED must be FLAGGED.',
+      testClaim: {
+        claim_id: 'tc_10',
+        paper_id: 'test_paper',
+        claim_text: 'In 32 resistance-trained young males, creatine kinase was 28% lower at 48 hours compared to placebo.',
+        evidence_ids: ['ev_test_p5'],
+        exact_supporting_quote:
+          'In 32 resistance-trained young males, serum creatine kinase was 28% lower at 48 hours in the tart cherry group compared to placebo',
+        population: '32 resistance-trained males',
+        study_design: 'RCT',
+        intervention_or_exposure: '',
+        comparison: 'Placebo beverage',
+        outcome: 'Serum creatine kinase',
+        numbers_and_units: '28% at 48 hours compared to placebo',
+        limitations: 'NOT REPORTED',
+        certainty_notes: '',
+        risk_flags: [],
+        review_status: 'DRAFT',
+        reviewer_note: '',
+        updated_at: new Date().toISOString(),
+      },
+      testPassages: [baselinePassage],
+    },
+
+    // Case 11: Side effects mentioned without medical safety warning -> FLAGGED
+    {
+      id: 11,
+      name: 'Medical safety warning missing',
+      expectedStatus: 'FLAGGED',
+      expectedRuleId: 'RULE_11_SAFETY_POLICY',
+      description: 'Claim notes adverse effects or high-dose risks without advising physician consultation must be FLAGGED.',
+      testClaim: {
+        claim_id: 'tc_11',
+        paper_id: 'test_paper',
+        claim_text: 'Tart cherry juice reduces severe muscle damage with reported side effects in high doses.',
+        evidence_ids: ['ev_test_p5'],
+        exact_supporting_quote:
+          'In 32 resistance-trained young males, serum creatine kinase was 28% lower at 48 hours in the tart cherry group compared to placebo',
+        population: '32 resistance-trained males',
+        study_design: 'RCT',
+        intervention_or_exposure: '',
+        comparison: 'Placebo beverage',
+        outcome: 'Creatine kinase',
+        numbers_and_units: '28% at 48 hours',
+        limitations: 'High doses caused GI symptoms',
+        certainty_notes: '',
+        risk_flags: [],
+        review_status: 'DRAFT',
+        reviewer_note: '',
+        updated_at: new Date().toISOString(),
+      },
+      testPassages: [baselinePassage],
+    },
+
+    // Case 12: Fully supported, rigorously qualified claim -> READY_FOR_HUMAN_REVIEW
+    {
+      id: 12,
       name: 'Fully qualified, supported empirical finding',
       expectedStatus: 'READY_FOR_HUMAN_REVIEW',
       expectedRuleId: 'ALL_PASSED',
       description: 'Accurate numbers (28%), exact population, RCT design, verbatim quote: passes to READY.',
       testClaim: {
-        claim_id: 'tc_8',
+        claim_id: 'tc_12',
         paper_id: 'test_paper',
         claim_text:
           'In resistance-trained young men, tart cherry concentrate supplementation was associated with 28% lower serum creatine kinase at 48 hours post-exercise compared with placebo.',

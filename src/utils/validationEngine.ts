@@ -259,11 +259,11 @@ export function runValidationEngine(
   // Rule 5: Denominator, Baseline & Timeframe Completeness
   // =========================================================================
   const relativeChangeRegex =
-    /\b(reduced by|increased by|decreased by|\d+%\s*(reduction|increase|decrease|drop|spike)|risk doubled|halved)\b/i;
+    /\b(reduced by|increased by|decreased by|dropped by|\d+%\s*(reduction|increase|decrease|drop|spike)|risk doubled|halved)\b/i;
   if (relativeChangeRegex.test(claim.claim_text)) {
     const hasTimeOrDenominator =
-      /\b(over \d+\s*(days|weeks|months|years)|at \d+\s*(hours|weeks|months)|per \d+|baseline|compared to|denominator|vs\b|placebo|control|n\s*=\s*\d+)\b/i.test(
-        claim.claim_text + ' ' + claim.exact_supporting_quote
+      /\b(over \d+\s*(days|weeks|months|years)|at \d+\s*(hours|weeks|months)|per \d+|baseline|compared to|compared with|denominator|vs\.?|placebo|control|n\s*=\s*\d+)\b/i.test(
+        claim.claim_text
       );
     if (!hasTimeOrDenominator) {
       recordCheck(
@@ -273,7 +273,7 @@ export function runValidationEngine(
         'NEEDS_REVIEW',
         'FLAG',
         'Relative change stated without baseline denominator, comparison group, or timeframe.',
-        `Relative expression detected in claim: "${claim.claim_text}"`,
+        `Relative expression detected in claim without anchoring: "${claim.claim_text}"`,
         'State baseline risk or study duration so readers understand clinical relevance.'
       );
     } else {
@@ -414,15 +414,27 @@ export function runValidationEngine(
   // =========================================================================
   // Rule 8: Preservation of Disclosed Study Limitations
   // =========================================================================
-  if (
-    claim.limitations &&
-    claim.limitations !== 'UNKNOWN' &&
-    claim.limitations !== 'NOT REPORTED' &&
-    claim.limitations.length > 20
-  ) {
+  const isLimitationsMissing =
+    !claim.limitations ||
+    claim.limitations === 'UNKNOWN' ||
+    claim.limitations === 'NOT REPORTED' ||
+    claim.limitations.trim() === '';
+
+  if (isLimitationsMissing) {
+    recordCheck(
+      'RULE_8_REMOVED_LIMITATION',
+      8,
+      'Preservation of Study Limitations',
+      'NEEDS_REVIEW',
+      'FLAG',
+      'Study limitations omitted or marked NOT REPORTED on clinical claim.',
+      `Limitations field is empty or unstated for claim: "${claim.claim_text.substring(0, 60)}..."`,
+      'Disclose study constraints (sample size, cohort restrictions, observational limits).'
+    );
+  } else if (claim.limitations.length > 20) {
     const hasCaveatWording =
       /\b(however|preliminary|further research|limited to|observed in|modest|noted that|uncertain|caution)\b/i.test(
-        claim.claim_text + ' ' + claim.certainty_notes
+        claim.claim_text + ' ' + (claim.certainty_notes || '')
       );
     if (!hasCaveatWording && claim.claim_text.length < 70) {
       recordCheck(
@@ -454,8 +466,8 @@ export function runValidationEngine(
       'Preservation of Study Limitations',
       'PASS',
       'FLAG',
-      'No unacknowledged major study limitations detected.',
-      `Limitations: ${claim.limitations || 'None reported'}`,
+      'Study limitations reported and acknowledged.',
+      `Limitations: ${claim.limitations}`,
       'None required.'
     );
   }
@@ -546,6 +558,13 @@ export function runValidationEngine(
   // =========================================================================
   const safetyRegex =
     /\b(miracle cure|melt fat|shed \d+\s*(lbs|pounds|kg)|guaranteed weight loss|cures cancer|ozempic without prescription|anabolic steroid|buy now|doctor secret trick)\b/i;
+  const sideEffectMention = /\b(side effects?|adverse events?|toxicity|contraindications?|complications?)\b/i.test(
+    claim.claim_text + ' ' + (claim.limitations || '')
+  );
+  const hasSafetyWarning = /\b(physician|doctor|guidance|supervision|consult|medical supervision|precautions?)\b/i.test(
+    claim.claim_text + ' ' + (claim.reviewer_note || '') + ' ' + (claim.limitations || '')
+  );
+
   if (safetyRegex.test(claim.claim_text) || safetyRegex.test(claim.exact_supporting_quote)) {
     recordCheck(
       'RULE_11_SAFETY_POLICY',
@@ -556,6 +575,17 @@ export function runValidationEngine(
       'Prohibited health marketing detected (miracle promises, extreme weight loss claims, or prescription drug promotion).',
       `Prohibited terminology found in claim or quote text.`,
       'Block this content. Educational science communication must avoid sensational promises.'
+    );
+  } else if (sideEffectMention && !hasSafetyWarning) {
+    recordCheck(
+      'RULE_11_SAFETY_POLICY',
+      11,
+      'Health Communication Safety & Policy',
+      'NEEDS_REVIEW',
+      'FLAG',
+      'Claim references side effects or adverse events without medical supervision warning.',
+      `Adverse effects mentioned without physician oversight disclaimer.`,
+      'Include explicit advisory to consult a physician before protocol initiation.'
     );
   } else {
     recordCheck(

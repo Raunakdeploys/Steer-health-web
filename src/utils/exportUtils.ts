@@ -252,13 +252,24 @@ export async function recordReelVideo(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not initialize 2D canvas context.');
 
-  const stream = canvas.captureStream(30); // 30 FPS
-  let mimeType = 'video/webm;codecs=vp9';
-  if (!MediaRecorder.isTypeSupported(mimeType)) {
-    mimeType = 'video/webm';
+  if (typeof MediaRecorder === 'undefined' || !(canvas as any).captureStream) {
+    throw new Error('Browser video capture is not supported in this environment.');
   }
 
-  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2500000 });
+  const stream = (canvas as any).captureStream(15); // 15 FPS for high stability & quick rendering
+  let mimeType = 'video/webm;codecs=vp9';
+  if (!MediaRecorder.isTypeSupported(mimeType)) {
+    if (MediaRecorder.isTypeSupported('video/webm')) {
+      mimeType = 'video/webm';
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+      mimeType = 'video/mp4';
+    } else {
+      mimeType = '';
+    }
+  }
+
+  const options: MediaRecorderOptions = mimeType ? { mimeType, videoBitsPerSecond: 2500000 } : {};
+  const recorder = new MediaRecorder(stream, options);
   const recordedChunks: Blob[] = [];
 
   recorder.ondataavailable = (e) => {
@@ -269,7 +280,8 @@ export async function recordReelVideo(
 
   return new Promise(async (resolve, reject) => {
     recorder.onstop = () => {
-      const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+      const outputType = mimeType || 'video/webm';
+      const videoBlob = new Blob(recordedChunks, { type: outputType });
       resolve(videoBlob);
     };
     recorder.onerror = (e) => reject(e);
@@ -278,14 +290,15 @@ export async function recordReelVideo(
 
     const totalDurationSec = scenes.reduce((sum, s) => sum + (s.duration_sec || 5), 0);
     let elapsedSec = 0;
+    const fps = 15;
 
     for (let sIdx = 0; sIdx < scenes.length; sIdx++) {
       const scene = scenes[sIdx];
       const sceneDuration = scene.duration_sec || 5;
-      const totalFrames = Math.round(sceneDuration * 30);
+      const totalFrames = Math.max(3, Math.round(sceneDuration * fps));
 
       for (let frame = 0; frame < totalFrames; frame++) {
-        const frameTime = frame / 30;
+        const frameTime = frame / fps;
         const currentTotalSec = elapsedSec + frameTime;
         const progress = Math.min(99, Math.round((currentTotalSec / totalDurationSec) * 100));
 
@@ -294,8 +307,8 @@ export async function recordReelVideo(
         // Render frame
         drawReelFrame(ctx, width, height, scene, sIdx + 1, scenes.length, frameTime, sceneDuration);
 
-        // Small interval to let the canvas stream capture
-        await new Promise((r) => setTimeout(r, 1000 / 30));
+        // Responsive frame delay: keeps UI responsive without hanging
+        await new Promise((r) => setTimeout(r, 12));
       }
 
       elapsedSec += sceneDuration;
