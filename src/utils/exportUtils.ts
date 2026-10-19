@@ -349,7 +349,8 @@ function drawReelFrame(
   // Scene title
   ctx.fillStyle = '#8B6A60';
   ctx.font = '600 18px "Plus Jakarta Sans", sans-serif';
-  ctx.fillText(scene.title.toUpperCase(), 60, 220);
+  const displayTitle = (scene.title || scene.on_screen_text || `SCENE ${sceneNum}`).toUpperCase();
+  ctx.fillText(displayTitle, 60, 220);
 
   // Primary on-screen text
   ctx.fillStyle = '#351D1D';

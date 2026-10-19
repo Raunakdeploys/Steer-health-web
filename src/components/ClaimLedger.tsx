@@ -37,6 +37,7 @@ interface ClaimLedgerProps {
   onNavigateToStudio: () => void;
   selectedClaimId?: string | null;
   onSelectClaim?: (claim: ClaimRecord) => void;
+  onResumeContentGeneration?: () => void;
 }
 
 export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
@@ -52,6 +53,7 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   onNavigateToStudio,
   selectedClaimId: externalSelectedClaimId,
   onSelectClaim,
+  onResumeContentGeneration,
 }) => {
   const [internalSelectedClaimId, setInternalSelectedClaimId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -278,22 +280,39 @@ export const ClaimLedger: React.FC<ClaimLedgerProps> = ({
   };
 
   const handleFlag = (claim: ClaimRecord, note: string) => {
+    const wasApproved = claim.review_status === 'HUMAN_APPROVED';
     const updated: ClaimRecord = {
       ...claim,
       review_status: 'FLAGGED',
       reviewer_note: note,
       updated_at: new Date().toISOString(),
     };
-    onUpdateClaim(updated, claim.review_status === 'HUMAN_APPROVED');
+    onUpdateClaim(updated, wasApproved);
+    setAuditSummary('Claim flagged with caveat note. Resuming content generation without this claim...');
+    setTimeout(() => setAuditSummary(null), 5000);
+    if (onResumeContentGeneration && wasApproved) {
+      onResumeContentGeneration();
+    }
   };
 
   const handleReject = (claim: ClaimRecord) => {
-    const updated: ClaimRecord = {
-      ...claim,
-      review_status: 'REJECTED',
-      updated_at: new Date().toISOString(),
-    };
-    onUpdateClaim(updated, claim.review_status === 'HUMAN_APPROVED');
+    if (confirm(`Reject and remove "${claim.claim_text.substring(0, 45)}..." from the editorial pipeline?`)) {
+      if (onDeleteClaim) {
+        onDeleteClaim(claim.claim_id);
+      } else {
+        const updated: ClaimRecord = {
+          ...claim,
+          review_status: 'REJECTED',
+          updated_at: new Date().toISOString(),
+        };
+        onUpdateClaim(updated, claim.review_status === 'HUMAN_APPROVED');
+      }
+      setAuditSummary('Claim rejected & removed from UI. Resuming content generation with remaining approved claims...');
+      setTimeout(() => setAuditSummary(null), 5000);
+      if (onResumeContentGeneration) {
+        onResumeContentGeneration();
+      }
+    }
   };
 
   // Save Claim Edits
