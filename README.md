@@ -2,7 +2,7 @@
 
 **An interactive health-tech experience built for Steer’s doctor-led metabolic health ecosystem.**
 
-[Live Demo](https://steer-health-web.onrender.com/) · [Walkthrough Video](YOUR_WALKTHROUGH_URL) · [GitHub Repository](YOUR_GITHUB_REPOSITORY_URL)
+[Live Demo](https://steer-health-web.onrender.com/) · [Walkthrough Video](https://drive.google.com/file/d/10ek6yR_LQW4aoPN_WIHWp2vCTQa_USsX/view?usp=drive_link) · [GitHub Repository](https://github.com/Raunakdeploys/Steer-health-web)
 
 ---
 
