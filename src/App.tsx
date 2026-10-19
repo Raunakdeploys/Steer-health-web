@@ -58,6 +58,8 @@ import { SelfTestRunner } from './components/SelfTestRunner';
 import { GoogleAuthModal } from './components/GoogleAuthModal';
 import { ClinicalTrialSimulator } from './components/ClinicalTrialSimulator';
 import { AiMediaStudio } from './components/AiMediaStudio';
+import { EvidenceRadar } from './components/EvidenceRadar';
+import { ContentBrief } from './types';
 import { propagateClaimChange } from './utils/impactAnalysis';
 
 export default function App() {
@@ -825,6 +827,76 @@ export default function App() {
     }
   };
 
+  /**
+   * Seamlessly deploys generated deliverables from Evidence Radar into Content Studio and database
+   */
+  const handleDeployFromRadar = (deliverables: {
+    carousel: CarouselContent;
+    staticPost: StaticPostContent;
+    reel: ReelContent;
+    newClaims: ClaimRecord[];
+    brief: ContentBrief;
+  }) => {
+    // 1. Merge new audited claims
+    const updatedClaims = [
+      ...deliverables.newClaims,
+      ...claims.filter((c) => !deliverables.newClaims.some((nc) => nc.claim_id === c.claim_id)),
+    ];
+    setClaims(updatedClaims);
+    saveClaims(updatedClaims);
+    if (deliverables.newClaims.length > 0) {
+      setSelectedClaimId(deliverables.newClaims[0].claim_id);
+    }
+
+    // 2. Insert or replace carousel
+    const updatedCarousels = [
+      deliverables.carousel,
+      ...carousels.filter((c) => c.paper_id !== deliverables.carousel.paper_id),
+    ];
+    setCarousels(updatedCarousels);
+    saveCarousels(updatedCarousels);
+
+    // 3. Insert or replace static post
+    const updatedStatic = [
+      deliverables.staticPost,
+      ...staticPosts.filter((s) => s.paper_id !== deliverables.staticPost.paper_id),
+    ];
+    setStaticPosts(updatedStatic);
+    saveStaticPosts(updatedStatic);
+
+    // 4. Insert or replace reel
+    const updatedReels = [
+      deliverables.reel,
+      ...reels.filter((r) => r.paper_id !== deliverables.reel.paper_id),
+    ];
+    setReels(updatedReels);
+    saveReels(updatedReels);
+
+    // 5. Update Content Calendar
+    if (activePaper) {
+      syncCalendarWithDeliverables(
+        activePaper.paper_id,
+        activePaper.title,
+        deliverables.carousel,
+        deliverables.staticPost,
+        deliverables.reel
+      );
+    }
+
+    // 6. Persist to Cloud SQL / Firestore
+    if (idToken && activePaper) {
+      for (const clm of deliverables.newClaims) {
+        saveClaimToSql(idToken, clm).catch(console.error);
+      }
+      saveDeliverableToSql(idToken, activePaper.paper_id, 'CAROUSEL', deliverables.carousel.id, deliverables.carousel).catch(console.error);
+      saveDeliverableToSql(idToken, activePaper.paper_id, 'STATIC', deliverables.staticPost.id, deliverables.staticPost).catch(console.error);
+      saveDeliverableToSql(idToken, activePaper.paper_id, 'REEL', deliverables.reel.id, deliverables.reel).catch(console.error);
+    }
+
+    // 7. Route user directly into Content Studio to inspect the generated assets
+    setCurrentTab('studio');
+  };
+
   const handleViewSourcePassage = (evidenceId: string) => {
     setHighlightEvidenceId(evidenceId);
     setCurrentTab('source');
@@ -880,7 +952,9 @@ export default function App() {
           onToggleInspector={() => setIsInspectorOpen(!isInspectorOpen)}
           sqlSyncStatus={sqlSyncStatus}
           quickActionLabel={
-            currentTab === 'papers'
+            currentTab === 'radar'
+              ? 'Content Studio →'
+              : currentTab === 'papers'
               ? 'Doctor Review Gate →'
               : currentTab === 'review' || currentTab === 'desk' || currentTab === 'provenance'
               ? 'Content Studio →'
@@ -893,7 +967,9 @@ export default function App() {
               : undefined
           }
           onQuickAction={
-            currentTab === 'papers'
+            currentTab === 'radar'
+              ? () => setCurrentTab('studio')
+              : currentTab === 'papers'
               ? () => setCurrentTab('review')
               : currentTab === 'review' || currentTab === 'desk' || currentTab === 'provenance'
               ? () => setCurrentTab('studio')
@@ -952,6 +1028,23 @@ export default function App() {
                 onOpenDemo={handleResetDemo}
                 onSwitchPaper={handleSwitchPaper}
                 onSelectClaimForReview={handleSelectClaim}
+              />
+            )}
+
+            {currentTab === 'radar' && (
+              <EvidenceRadar
+                papers={papers}
+                activePaper={activePaper}
+                passages={passages}
+                claims={claims}
+                onSwitchPaper={handleSwitchPaper}
+                onDeployToStudio={handleDeployFromRadar}
+                onNavigateToStudio={() => setCurrentTab('studio')}
+                onNavigateToReview={() => setCurrentTab('review')}
+                onNavigateToDesk={(claimId) => {
+                  if (claimId) setSelectedClaimId(claimId);
+                  setCurrentTab('desk');
+                }}
               />
             )}
 

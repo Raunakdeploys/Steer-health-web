@@ -310,3 +310,112 @@ export interface ChangeImpactAnalysisResult {
   summary: string;
 }
 
+// ============================================================================
+// STEER EVIDENCE RADAR DATA STRUCTURES
+// ============================================================================
+
+export type EvidenceStatus =
+  | 'SUPPORTED_BY_PASSAGE'
+  | 'NEEDS_QUALIFICATION'
+  | 'CONFLICTING_EVIDENCE'
+  | 'INSUFFICIENT_EVIDENCE'
+  | 'SOURCE_UNAVAILABLE'
+  | 'AWAITING_CLINICIAN_REVIEW';
+
+export interface AudienceQuestionItem {
+  id: string;
+  text: string;
+  source?: 'Instagram Comment' | 'Email Q&A' | 'Clinical Consultation' | 'CSV Upload' | 'Manual Input' | 'Reddit / Forum';
+  author?: string;
+  upvotes?: number;
+  sentiment?: 'CONFUSED' | 'SKEPTICAL' | 'FRUSTRATED' | 'CURIOUS' | 'FEARFUL';
+  added_at: string;
+}
+
+export interface EvidenceGapAssessment {
+  status: EvidenceStatus;
+  status_reason: string;
+  what_evidence_supports: string;
+  what_evidence_does_not_establish: string;
+  limitations_and_uncertainty: string;
+  primary_source_title?: string;
+  primary_source_doi?: string;
+  primary_source_journal?: string;
+  primary_source_year?: string;
+  supporting_passage_id?: string;
+  supporting_passage_text?: string;
+  supporting_page_reference?: string;
+  competing_viewpoints?: string[];
+  paper_id?: string;
+}
+
+export interface RadarTheme {
+  id: string;
+  theme_name: string;
+  category:
+    | 'GLP-1 & Muscle Preservation'
+    | 'Insulin Resistance & Carbs'
+    | 'Metabolic Adaptation & Deficits'
+    | 'Protein Satiety & Lean Mass'
+    | 'South Asian Biology & Visceral Fat'
+    | 'Sleep & Cortisol Dysregulation'
+    | 'Exercise & Strength Thresholds'
+    | 'Other / General Inquiry';
+  question_count: number;
+  question_ids: string[];
+  representative_questions: string[]; // Verbatim quotes from input dataset
+  underlying_misconception: string; // Explicitly marked as AI-inferred interpretation
+  why_respond: string;
+  clinical_urgency: 'HIGH' | 'MEDIUM' | 'LOW';
+  evidence_strength: 'STRONG' | 'MODERATE' | 'EMERGING' | 'CONTRADICTED' | 'INSUFFICIENT';
+  ambiguity_notes?: string;
+  suggested_paper_id?: string;
+  evidence_gap?: EvidenceGapAssessment;
+}
+
+export interface ContentBriefReference {
+  title: string;
+  journal: string;
+  year: string;
+  doi?: string;
+  evidence_id?: string;
+  verbatim_quote?: string;
+}
+
+export interface ContentBriefChecklistItem {
+  item: string;
+  checked: boolean;
+  required_role: 'Attending Physician' | 'Science Communicator' | 'Senior Medical Editor';
+}
+
+export interface ContentBrief {
+  brief_id: string;
+  theme_id: string;
+  paper_id?: string;
+  audience_question: string;
+  why_it_matters: string;
+  educational_angle: string;
+  hook: string;
+  core_message: string;
+  must_not_claim: string[]; // Strict negative constraints
+  caveats_and_uncertainty: string[];
+  suggested_format: 'CAROUSEL' | 'STATIC' | 'REEL' | 'MULTI_FORMAT';
+  call_to_action: string;
+  supporting_references: ContentBriefReference[];
+  review_checklist: ContentBriefChecklistItem[];
+  approved_by_clinician?: boolean;
+  approved_at?: string;
+  approved_by?: string;
+}
+
+export interface PubMedSearchResult {
+  pmid: string;
+  title: string;
+  authors: string;
+  journal: string;
+  pubdate: string;
+  doi: string;
+  abstractSnippet?: string;
+}
+
+

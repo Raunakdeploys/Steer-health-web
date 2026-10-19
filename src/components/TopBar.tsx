@@ -33,6 +33,7 @@ interface TopBarProps {
 
 const TAB_TITLES: Record<ActiveTab, { title: string; subtitle: string }> = {
   workspace: { title: 'Workbench', subtitle: 'Overview & Editorial Queue' },
+  radar: { title: 'Evidence Radar', subtitle: 'Audience Questions, Literature Gaps & Content Briefs' },
   papers: { title: 'Paper Intake', subtitle: 'Ingest Research & Extract Passages' },
   source: { title: 'Evidence Stitch', subtitle: 'Verbatim Document Source Reader' },
   desk: { title: 'Investigation Desk', subtitle: 'Multi-Pane Evidence & Claim Triangulation' },

@@ -18,10 +18,12 @@ import {
   ShieldCheck,
   ChevronDown,
   Sparkles,
+  Radio,
 } from 'lucide-react';
 
 export type ActiveTab =
   | 'workspace'
+  | 'radar'
   | 'desk'
   | 'provenance'
   | 'review'
@@ -76,6 +78,13 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
       id: 'workspace' as ActiveTab,
       label: 'Workbench',
       icon: Compass,
+    },
+    {
+      id: 'radar' as ActiveTab,
+      label: 'Evidence Radar',
+      icon: Radio,
+      badge: 'Audience Qs',
+      badgeHighlight: true,
     },
     {
       id: 'papers' as ActiveTab,

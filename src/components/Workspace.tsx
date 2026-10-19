@@ -23,6 +23,7 @@ import {
   Award,
   Zap,
   Sparkles,
+  Radio,
 } from 'lucide-react';
 
 interface WorkspaceProps {
@@ -235,7 +236,36 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
       </section>
 
-      {/* 02. Two Key Fast Paths: Hackathon PS2 Packet & 7-Day Instagram Cadence */}
+      {/* 02. FLAGSHIP FEATURE SPOTLIGHT: STEER EVIDENCE RADAR */}
+      <section className="bg-[#FFFDF9] border-2 border-[#C04E2A]/30 p-5 sm:p-6 rounded-xs shadow-xs hover:border-[#C04E2A] transition-colors">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-[#C04E2A] text-white text-[9px] font-mono uppercase font-bold rounded-xs flex items-center gap-1">
+                <Radio className="w-3 h-3" />
+                FLAGSHIP DISCOVERY ENGINE
+              </span>
+              <span className="text-xs font-mono font-bold text-[#661414]">STEER EVIDENCE RADAR</span>
+            </div>
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-[#351D1D]">
+              Audience Need → Scientific Evidence Gap → Responsible Instagram Content
+            </h3>
+            <p className="text-xs text-[#786A61] max-w-2xl leading-relaxed">
+              Ingest real audience DMs, comments, and questions. Automatically cluster them into recurring metabolic misconceptions, audit the scientific literature gap against clinical trials, and generate doctor-approved briefs with zero medical clickbait.
+            </p>
+          </div>
+
+          <button
+            onClick={() => onNavigate('radar')}
+            className="px-5 py-2.5 bg-[#661414] hover:bg-[#501010] text-white text-xs font-semibold rounded-xs transition-colors flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-xs"
+          >
+            <Radio className="w-3.5 h-3.5 text-[#C04E2A]" />
+            <span>Launch Evidence Radar →</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 03. Two Key Fast Paths: Hackathon PS2 Packet & 7-Day Instagram Cadence */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Card 1: Hackathon Submission Center */}
         <div className="bg-[#661414] text-[#F5EBDF] p-5 sm:p-6 border border-[#351D1D] flex flex-col justify-between space-y-4 shadow-xs rounded-xs">
