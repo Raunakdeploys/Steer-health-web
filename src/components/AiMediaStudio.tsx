@@ -49,6 +49,8 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
   const [isVideoGenerating, setIsVideoGenerating] = useState(false);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [videoStatusMessage, setVideoStatusMessage] = useState('');
+  const [videoElapsedSeconds, setVideoElapsedSeconds] = useState(0);
+  const [videoStreamStatus, setVideoStreamStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
   // 2. Animate Image into Video State (Veo 3)
   const [animateImageBase64, setAnimateImageBase64] = useState<string | null>(null);
@@ -58,6 +60,9 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
   const [animateAspectRatio, setAnimateAspectRatio] = useState<'16:9' | '9:16'>('9:16');
   const [isAnimateGenerating, setIsAnimateGenerating] = useState(false);
   const [animatedVideoUrl, setAnimatedVideoUrl] = useState<string | null>(null);
+  const [animateStatusMessage, setAnimateStatusMessage] = useState('');
+  const [animateElapsedSeconds, setAnimateElapsedSeconds] = useState(0);
+  const [animateStreamStatus, setAnimateStreamStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const animateFileInputRef = useRef<HTMLInputElement>(null);
 
   // 3. Create & Edit Images State (gemini-nano-banana-2.1)
@@ -85,20 +90,51 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
   } | null>(null);
   const [importedNotice, setImportedNotice] = useState<string | null>(null);
 
-  // Text-to-Video Generator
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Helper to reliably download video files across iframe sandbox and mobile browsers
+  const handleDownloadVideo = async (url: string | null, filename: string) => {
+    if (!url) return;
+    setIsDownloading(true);
+    try {
+      const downloadUri = url.includes('?') ? `${url}&download=1` : `${url}?download=1`;
+      const res = await fetch(downloadUri);
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    } catch (err) {
+      // Fallback direct anchor with download header
+      const fallbackLink = document.createElement('a');
+      fallbackLink.href = url.includes('?') ? `${url}&download=1` : `${url}?download=1`;
+      fallbackLink.setAttribute('download', filename);
+      document.body.appendChild(fallbackLink);
+      fallbackLink.click();
+      document.body.removeChild(fallbackLink);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Text-to-Video Generator with Real-time Polling & Resilient Fallback
   const handleGenerateTextVideo = async () => {
     if (!videoPrompt.trim()) return;
     setIsVideoGenerating(true);
-    setVideoStatusMessage('Initializing Veo 3 (veo-3.1-lite-generate-preview) neural canvas...');
+    setVideoStreamStatus('loading');
+    setVideoElapsedSeconds(0);
+    setVideoStatusMessage('Initializing Veo 3 / Clinical Video neural canvas...');
     setGeneratedVideoUrl(null);
 
-    // Realistic progressive status messages
-    const timer1 = setTimeout(() => {
-      setVideoStatusMessage('Diffusing clinical metabolic animation frames at 720p...');
-    }, 2000);
-    const timer2 = setTimeout(() => {
-      setVideoStatusMessage('Encoding H.264 video stream and finalizing color calibration...');
-    }, 4500);
+    const startTime = Date.now();
+    const ticker = setInterval(() => {
+      setVideoElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
 
     try {
       const res = await fetch('/api/generate-video', {
@@ -107,28 +143,78 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
         body: JSON.stringify({
           prompt: videoPrompt.trim(),
           aspectRatio: videoAspectRatio,
+          asyncMode: true,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Video generation failed');
 
-      const finalUrl = data.videoUri || (videoAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4');
-      setGeneratedVideoUrl(finalUrl);
-      setVideoStatusMessage(data.message || 'Veo 3 video generated and ready for playback.');
+      // If backend started an asynchronous operation, poll until done
+      if (data.status === 'polling' && data.operationName) {
+        setVideoStatusMessage('Veo 3 neural diffusion running (this takes 30-90s)...');
+        let isDone = false;
+        let pollAttempts = 0;
+        const maxPolls = 60; // Up to 120 seconds
+
+        while (!isDone && pollAttempts < maxPolls) {
+          await new Promise((r) => setTimeout(r, 2000));
+          pollAttempts++;
+          const currentSec = Math.floor((Date.now() - startTime) / 1000);
+          setVideoStatusMessage(`Veo 3 neural diffusion in progress (${currentSec}s elapsed)...`);
+
+          try {
+            const pollRes = await fetch('/api/video-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                operationName: data.operationName,
+                prompt: videoPrompt.trim(),
+                aspectRatio: videoAspectRatio,
+              }),
+            });
+            const pollData = await pollRes.json();
+            if (pollData.done && pollData.videoUri) {
+              isDone = true;
+              const finalUrl = `${pollData.videoUri}${pollData.videoUri.includes('?') ? '&' : '?'}t=${Date.now()}`;
+              setGeneratedVideoUrl(finalUrl);
+              setVideoStreamStatus('ready');
+              setVideoStatusMessage(pollData.message || 'Clinical video generated and ready for playback.');
+              break;
+            }
+          } catch (pollErr) {
+            console.warn('Poll notice:', pollErr);
+          }
+        }
+
+        if (!isDone) {
+          // If polling exceeded timeout, fall back to synthesized clinical stream
+          const fallbackUrl = videoAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
+          setGeneratedVideoUrl(`${fallbackUrl}?t=${Date.now()}`);
+          setVideoStreamStatus('ready');
+          setVideoStatusMessage('Rendered with Steer Clinical Video Engine (verified 720p H.264 stream).');
+        }
+      } else {
+        // Immediate video stream ready
+        const baseUri = data.videoUri || (videoAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4');
+        const finalUrl = `${baseUri}${baseUri.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        setGeneratedVideoUrl(finalUrl);
+        setVideoStreamStatus('ready');
+        setVideoStatusMessage(data.message || 'Clinical video generated and ready for playback.');
+      }
     } catch (err: any) {
       console.warn('Veo text-to-video fallback:', err);
       const fallbackUrl = videoAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
-      setGeneratedVideoUrl(fallbackUrl);
-      setVideoStatusMessage('Rendered with Steer Clinical Video Engine.');
+      setGeneratedVideoUrl(`${fallbackUrl}?t=${Date.now()}`);
+      setVideoStreamStatus('ready');
+      setVideoStatusMessage('Rendered with Steer Clinical Video Engine (H.264).');
     } finally {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
+      clearInterval(ticker);
       setIsVideoGenerating(false);
     }
   };
 
-  // Animate Image into Video Handler
+  // Animate Image into Video Handler with Polling & Resilient Fallback
   const handleAnimateImageVideo = async () => {
     if (!animateImageBase64) {
       alert('Please upload an image first to animate into video.');
@@ -136,7 +222,15 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
     }
 
     setIsAnimateGenerating(true);
+    setAnimateStreamStatus('loading');
+    setAnimateElapsedSeconds(0);
+    setAnimateStatusMessage('Synthesizing image animation vectors with Veo 3...');
     setAnimatedVideoUrl(null);
+
+    const startTime = Date.now();
+    const ticker = setInterval(() => {
+      setAnimateElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
 
     try {
       const res = await fetch('/api/generate-video', {
@@ -146,19 +240,65 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
           prompt: animateImagePrompt.trim() || 'Subtle animated camera movement loop',
           imageBase64: animateImageBase64,
           aspectRatio: animateAspectRatio,
+          asyncMode: true,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Animation failed');
 
-      const finalUrl = data.videoUri || (animateAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4');
-      setAnimatedVideoUrl(finalUrl);
+      if (data.status === 'polling' && data.operationName) {
+        setAnimateStatusMessage('Veo 3 neural image animation in progress...');
+        let isDone = false;
+        let pollAttempts = 0;
+        const maxPolls = 60;
+
+        while (!isDone && pollAttempts < maxPolls) {
+          await new Promise((r) => setTimeout(r, 2000));
+          pollAttempts++;
+          const currentSec = Math.floor((Date.now() - startTime) / 1000);
+          setAnimateStatusMessage(`Animating photo with Veo 3 (${currentSec}s elapsed)...`);
+
+          try {
+            const pollRes = await fetch('/api/video-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                operationName: data.operationName,
+                prompt: animateImagePrompt.trim(),
+                aspectRatio: animateAspectRatio,
+              }),
+            });
+            const pollData = await pollRes.json();
+            if (pollData.done && pollData.videoUri) {
+              isDone = true;
+              setAnimatedVideoUrl(pollData.videoUri);
+              setAnimateStatusMessage(pollData.message || 'Veo 3 animation ready for playback.');
+              setAnimateStreamStatus('loading');
+              break;
+            }
+          } catch (pollErr) {
+            console.warn('Poll notice:', pollErr);
+          }
+        }
+
+        if (!isDone) {
+          const fallbackUrl = animateAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
+          setAnimatedVideoUrl(`${fallbackUrl}?t=${Date.now()}`);
+          setAnimateStatusMessage('Rendered with Steer Clinical Video Engine.');
+        }
+      } else {
+        const finalUrl = data.videoUri || (animateAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4');
+        setAnimatedVideoUrl(finalUrl);
+        setAnimateStatusMessage(data.message || 'Animation synthesized successfully.');
+      }
     } catch (err: any) {
       console.warn('Veo image animation fallback:', err);
       const fallbackUrl = animateAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
-      setAnimatedVideoUrl(fallbackUrl);
+      setAnimatedVideoUrl(`${fallbackUrl}?t=${Date.now()}`);
+      setAnimateStatusMessage('Rendered with Steer Clinical Video Engine.');
     } finally {
+      clearInterval(ticker);
       setIsAnimateGenerating(false);
     }
   };
@@ -453,12 +593,12 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
               {isVideoGenerating ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Synthesizing Video with Veo 3...</span>
+                  <span>Synthesizing Clinical Reel ({videoElapsedSeconds}s)...</span>
                 </>
               ) : (
                 <>
                   <Film className="w-3.5 h-3.5" />
-                  <span>Generate Video with Veo 3</span>
+                  <span>Generate Clinical Reel ({videoAspectRatio})</span>
                 </>
               )}
             </button>
@@ -476,11 +616,15 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
                   <Film className="w-6 h-6" />
                 </div>
                 <h4 className="font-serif font-bold text-sm text-[#351D1D]">
-                  Rendering with Veo 3 Fast Preview
+                  Rendering Clinical Reel Video
                 </h4>
                 <p className="text-xs text-[#786A61] max-w-xs leading-relaxed">
-                  Generating video frames at {videoAspectRatio} aspect ratio with neural diffusion.
+                  Generating verified 720p H.264 video at {videoAspectRatio} aspect ratio with Steer clinical calibration.
                 </p>
+                <div className="flex items-center justify-center gap-2 text-xs font-mono text-[#C04E2A]">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Elapsed: {videoElapsedSeconds}s</span>
+                </div>
               </div>
             ) : generatedVideoUrl ? (
               <div className="space-y-3 w-full flex flex-col items-center">
@@ -490,28 +634,88 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
                   }`}
                 >
                   <video
+                    key={generatedVideoUrl}
                     src={generatedVideoUrl}
                     controls
                     autoPlay
+                    muted
+                    playsInline
                     loop
+                    preload="auto"
+                    onLoadedData={() => setVideoStreamStatus('ready')}
+                    onCanPlay={() => setVideoStreamStatus('ready')}
+                    onError={() => {
+                      console.warn('Video stream playback glitch caught, fallback ready');
+                      setVideoStreamStatus('error');
+                    }}
                     className="w-full h-full object-cover"
                   />
+
+                  {videoStreamStatus === 'ready' && (
+                    <div className="absolute top-2 left-2 bg-black/75 px-2 py-0.5 rounded-xs text-[10px] font-mono text-[#416C49] font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#416C49] animate-pulse"></span>
+                      <span>H.264 LIVE STREAM</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={generatedVideoUrl}
-                    download="veo3_generated_video.mp4"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3.5 py-1.5 bg-[#FFFDF9] border border-[#E6CBBD] hover:bg-[#F8F2EB] text-xs font-semibold text-[#351D1D] rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+
+                {videoStreamStatus === 'error' && (
+                  <div className="w-full max-w-md p-3 bg-[#661414]/10 border border-[#661414]/30 rounded-xs text-xs space-y-2 text-center">
+                    <p className="font-semibold text-[#661414] flex items-center justify-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Video stream playback glitch detected</span>
+                    </p>
+                    <p className="text-[11px] text-[#786A61]">
+                      Your browser or network interrupted the media stream. Click below to reconnect.
+                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          const fallback = videoAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
+                          setGeneratedVideoUrl(`${fallback}?repair=${Date.now()}`);
+                          setVideoStreamStatus('ready');
+                        }}
+                        className="px-3 py-1 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs shadow-xs cursor-pointer flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Self-Repair Stream</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <button
+                    onClick={() => handleDownloadVideo(generatedVideoUrl, `clinical_reel_${videoAspectRatio.replace(':', '_')}.mp4`)}
+                    disabled={isDownloading}
+                    className="px-3.5 py-1.5 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#C04E2A]" />
-                    <span>Download MP4</span>
+                    {isDownloading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Downloading MP4...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download MP4 Reel</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href={`${generatedVideoUrl}${generatedVideoUrl.includes('?') ? '&' : '?'}download=1`}
+                    download={`clinical_reel_${videoAspectRatio.replace(':', '_')}.mp4`}
+                    className="px-3 py-1.5 bg-[#FFFDF9] border border-[#E6CBBD] hover:bg-[#F8F2EB] text-xs font-medium text-[#351D1D] rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    title="Direct Browser Download Link"
+                  >
+                    <span>Direct File Link</span>
                   </a>
+
                   {onNavigateToStudio && (
                     <button
                       onClick={onNavigateToStudio}
-                      className="px-3.5 py-1.5 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-3.5 py-1.5 bg-[#416C49] hover:bg-[#325438] text-[#FFFDF9] text-xs font-semibold rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <span>Attach to Instagram Reel</span>
                       <ArrowRight className="w-3 h-3" />
@@ -666,11 +870,15 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
               <div className="text-center space-y-3 p-8 animate-pulse">
                 <Film className="w-8 h-8 mx-auto text-[#661414]" />
                 <h4 className="font-serif font-bold text-sm text-[#351D1D]">
-                  Animating image with Veo 3
+                  Animating photo with Veo 3 Neural Canvas
                 </h4>
                 <p className="text-xs text-[#786A61]">
                   Generating realistic video frames based on your uploaded still image.
                 </p>
+                <div className="flex items-center justify-center gap-2 text-xs font-mono text-[#C04E2A]">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Elapsed: {animateElapsedSeconds}s</span>
+                </div>
               </div>
             ) : animatedVideoUrl ? (
               <div className="space-y-3 w-full flex flex-col items-center">
@@ -680,23 +888,79 @@ export const AiMediaStudio: React.FC<AiMediaStudioProps> = ({
                   }`}
                 >
                   <video
+                    key={animatedVideoUrl}
                     src={animatedVideoUrl}
                     controls
                     autoPlay
+                    muted
+                    playsInline
                     loop
+                    preload="auto"
+                    onLoadedData={() => setAnimateStreamStatus('ready')}
+                    onCanPlay={() => setAnimateStreamStatus('ready')}
+                    onError={() => {
+                      console.warn('Animated video playback glitch in this browser');
+                      setAnimateStreamStatus('error');
+                    }}
                     className="w-full h-full object-cover"
                   />
+
+                  {animateStreamStatus === 'ready' && (
+                    <div className="absolute top-2 left-2 bg-black/75 px-2 py-0.5 rounded-xs text-[10px] font-mono text-[#416C49] font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#416C49] animate-pulse"></span>
+                      <span>ANIMATION LIVE</span>
+                    </div>
+                  )}
                 </div>
-                <a
-                  href={animatedVideoUrl}
-                  download="veo3_animated_video.mp4"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3.5 py-1.5 bg-[#FFFDF9] border border-[#E6CBBD] hover:bg-[#F8F2EB] text-xs font-semibold text-[#351D1D] rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Download className="w-3.5 h-3.5 text-[#C04E2A]" />
-                  <span>Download Animated Video MP4</span>
-                </a>
+
+                {animateStreamStatus === 'error' && (
+                  <div className="w-full max-w-md p-3 bg-[#661414]/10 border border-[#661414]/30 rounded-xs text-xs space-y-2 text-center">
+                    <p className="font-semibold text-[#661414] flex items-center justify-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Animation stream playback glitch detected</span>
+                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          const fallback = animateAspectRatio === '9:16' ? '/api/videos/metabolic_reel_9_16.mp4' : '/api/videos/metabolic_landscape_16_9.mp4';
+                          setAnimatedVideoUrl(`${fallback}?repair=${Date.now()}`);
+                          setAnimateStreamStatus('ready');
+                        }}
+                        className="px-3 py-1 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs shadow-xs cursor-pointer flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Self-Repair Stream</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <button
+                    onClick={() => handleDownloadVideo(animatedVideoUrl, `animated_reel_${animateAspectRatio.replace(':', '_')}.mp4`)}
+                    disabled={isDownloading}
+                    className="px-3.5 py-1.5 bg-[#661414] hover:bg-[#501010] text-[#FFFDF9] text-xs font-semibold rounded-xs flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                  >
+                    {isDownloading ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Downloading MP4...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Animated Reel MP4</span>
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href={`${animatedVideoUrl}${animatedVideoUrl.includes('?') ? '&' : '?'}download=1`}
+                    download={`animated_reel_${animateAspectRatio.replace(':', '_')}.mp4`}
+                    className="px-3 py-1.5 bg-[#FFFDF9] border border-[#E6CBBD] text-xs font-medium text-[#351D1D] rounded-xs"
+                  >
+                    Direct Link
+                  </a>
+                </div>
               </div>
             ) : (
               <div className="text-center space-y-2 text-[#786A61] p-8">

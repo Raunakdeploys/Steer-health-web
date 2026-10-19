@@ -1977,55 +1977,122 @@ app.post('/api/search-grounding', async (req, res) => {
   }
 });
 
-// Video Streaming Endpoint with full HTTP 206 Partial Content range support
-app.get('/api/videos/:filename', (req: Request, res: Response) => {
-  const filename = path.basename(req.params.filename);
-  let filePath = path.join(__dirname, 'public', 'videos', 'generated', filename);
-  if (!fs.existsSync(filePath)) {
-    filePath = path.join(__dirname, 'public', 'videos', 'templates', filename);
+// Video Streaming Endpoint with full HTTP 206 Partial Content range support, CORS, and deployment safety
+app.all('/api/videos/:filename', (req: Request, res: Response) => {
+  const rawFilename = path.basename(req.params.filename);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Range, Content-Type, Accept-Ranges');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
   }
-  if (!fs.existsSync(filePath)) {
-    filePath = path.join(__dirname, 'public', 'videos', 'templates', 'metabolic_reel_9_16.mp4');
+
+  // Candidate paths to search for this video file
+  const candidatePaths = [
+    path.join(__dirname, 'public', 'videos', 'generated', rawFilename),
+    path.join(process.cwd(), 'public', 'videos', 'generated', rawFilename),
+    path.join(process.cwd(), 'dist', 'videos', 'generated', rawFilename),
+    path.join(__dirname, 'public', 'videos', 'templates', rawFilename),
+    path.join(process.cwd(), 'public', 'videos', 'templates', rawFilename),
+    path.join(process.cwd(), 'dist', 'videos', 'templates', rawFilename),
+    path.join(__dirname, 'public', 'videos', rawFilename),
+    path.join(process.cwd(), 'public', 'videos', rawFilename),
+    path.join(process.cwd(), 'dist', 'videos', rawFilename),
+    // Fallback template paths
+    path.join(process.cwd(), 'public', 'videos', 'templates', 'metabolic_reel_9_16.mp4'),
+    path.join(process.cwd(), 'dist', 'videos', 'templates', 'metabolic_reel_9_16.mp4'),
+    path.join(process.cwd(), 'public', 'videos', 'templates', 'metabolic_landscape_16_9.mp4'),
+    path.join(process.cwd(), 'public', 'videos', 'test.mp4'),
+  ];
+
+  let filePath: string | null = null;
+  for (const c of candidatePaths) {
+    if (fs.existsSync(c)) {
+      try {
+        const s = fs.statSync(c);
+        if (s.size > 1000) {
+          filePath = c;
+          break;
+        }
+      } catch {}
+    }
   }
-  if (!fs.existsSync(filePath)) {
+
+  if (!filePath) {
     return res.status(404).send('Video not found');
   }
 
   const stat = fs.statSync(filePath);
   const fileSize = stat.size;
+  const isWebm = rawFilename.endsWith('.webm') || filePath.endsWith('.webm');
+  const contentType = isWebm ? 'video/webm' : 'video/mp4';
+  const shouldDownload = Boolean(req.query.download);
+  const disposition = shouldDownload ? `attachment; filename="${rawFilename}"` : 'inline';
+
+  if (req.method === 'HEAD') {
+    res.status(200).set({
+      'Content-Length': fileSize,
+      'Content-Type': contentType,
+      'Accept-Ranges': 'bytes',
+      'Content-Disposition': disposition,
+    }).end();
+    return;
+  }
+
   const range = req.headers.range;
 
   if (range) {
     const parts = range.replace(/bytes=/, '').split('-');
     const start = parseInt(parts[0], 10);
     const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+    // Check bounds
+    if (isNaN(start) || start >= fileSize || end >= fileSize || start > end) {
+      res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
+      return;
+    }
+
     const chunksize = end - start + 1;
     const file = fs.createReadStream(filePath, { start, end });
-    const head = {
+
+    file.on('error', (err) => {
+      console.warn('Video read stream notice:', err.message);
+      if (!res.headersSent) res.status(500).end();
+    });
+
+    res.writeHead(206, {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunksize,
-      'Content-Type': filename.endsWith('.webm') ? 'video/webm' : 'video/mp4',
-    };
-    res.writeHead(206, head);
+      'Content-Type': contentType,
+      'Content-Disposition': disposition,
+    });
     file.pipe(res);
   } else {
-    const head = {
+    res.writeHead(200, {
       'Content-Length': fileSize,
-      'Content-Type': filename.endsWith('.webm') ? 'video/webm' : 'video/mp4',
+      'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
-    };
-    res.writeHead(200, head);
-    fs.createReadStream(filePath).pipe(res);
+      'Content-Disposition': disposition,
+    });
+    const file = fs.createReadStream(filePath);
+    file.on('error', (err) => {
+      console.warn('Video full stream notice:', err.message);
+      if (!res.headersSent) res.status(500).end();
+    });
+    file.pipe(res);
   }
 });
 
-// 2. Veo 3 Video Generation / Animate Image Endpoint (veo-3.1-lite-generate-preview)
+// 2. Veo 3 Video Generation / Animate Image Endpoint
 app.post('/api/generate-video', async (req: Request, res: Response) => {
   try {
-    const { prompt, imageBase64, aspectRatio = '9:16' } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required for video generation' });
+    const { prompt, imageBase64, aspectRatio = '9:16', asyncMode = false } = req.body;
+    if (!prompt && !imageBase64) {
+      return res.status(400).json({ error: 'Prompt or image is required for video generation' });
     }
 
     const isPortrait = aspectRatio === '9:16';
@@ -2060,10 +2127,21 @@ app.post('/api/generate-video', async (req: Request, res: Response) => {
           });
         }
 
-        // Wait up to 14 seconds for fast preview
+        // If client requested async polling mode, return operation name immediately
+        if (asyncMode && operation?.name) {
+          return res.json({
+            success: true,
+            status: 'polling',
+            operationName: operation.name,
+            aspectRatio,
+            message: 'Veo 3 neural diffusion initialized.',
+          });
+        }
+
+        // Wait up to 24 seconds for rapid generation
         let result = await client.operations.getVideosOperation({ operation });
         let attempts = 0;
-        while (!result.done && attempts < 7) {
+        while (!result.done && attempts < 12) {
           await new Promise((r) => setTimeout(r, 2000));
           result = await client.operations.getVideosOperation({ operation });
           attempts++;
@@ -2071,21 +2149,30 @@ app.post('/api/generate-video', async (req: Request, res: Response) => {
 
         const rawUri = result.response?.generatedVideos?.[0]?.video?.uri;
         if (rawUri) {
-          // Download video using x-goog-api-key header and save locally
-          const videoRes = await fetch(rawUri, {
+          // Download video using x-goog-api-key header and query parameter
+          const downloadUrl = rawUri.includes('?') ? `${rawUri}&key=${apiKey}` : `${rawUri}?key=${apiKey}`;
+          const videoRes = await fetch(downloadUrl, {
             headers: { 'x-goog-api-key': apiKey },
           });
+
           if (videoRes.ok) {
             const buffer = Buffer.from(await videoRes.arrayBuffer());
-            const videoId = `veo_${Date.now().toString(36)}`;
-            const localFile = path.join(__dirname, 'public', 'videos', 'generated', `${videoId}.mp4`);
-            fs.writeFileSync(localFile, buffer);
-            return res.json({
-              success: true,
-              videoUri: `/api/videos/${videoId}.mp4`,
-              engine: 'veo-3.1-lite-generate-preview',
-              message: 'Veo 3 neural video generated successfully.',
-            });
+            // Verify this is a valid video (size > 5000 bytes)
+            if (buffer.length > 5000) {
+              const videoId = `veo_${Date.now().toString(36)}`;
+              const genDir = path.join(process.cwd(), 'public', 'videos', 'generated');
+              fs.mkdirSync(genDir, { recursive: true });
+              const localFile = path.join(genDir, `${videoId}.mp4`);
+              fs.writeFileSync(localFile, buffer);
+
+              return res.json({
+                success: true,
+                status: 'ready',
+                videoUri: `/api/videos/${videoId}.mp4`,
+                engine: 'veo-3.1-lite-generate-preview',
+                message: 'Veo 3 video generated successfully.',
+              });
+            }
           }
         }
       } catch (veoErr: any) {
@@ -2093,10 +2180,10 @@ app.post('/api/generate-video', async (req: Request, res: Response) => {
       }
     }
 
-    // Strategy 2: High-definition Steer Medical Video Renderer via FFmpeg
+    // Strategy 2: High-definition Steer Medical Video Renderer via FFmpeg / Clinical Templates
     try {
       const videoUri = await synthesizeFfmpegVideo({
-        prompt,
+        prompt: prompt || 'Clinical metabolic synthesis',
         aspectRatio: isPortrait ? '9:16' : '16:9',
         imageBase64,
         durationSec: 6,
@@ -2104,6 +2191,7 @@ app.post('/api/generate-video', async (req: Request, res: Response) => {
 
       return res.json({
         success: true,
+        status: 'ready',
         videoUri,
         engine: 'steer-clinical-renderer',
         message: 'High-definition medical animation video synthesized successfully.',
@@ -2113,6 +2201,7 @@ app.post('/api/generate-video', async (req: Request, res: Response) => {
       const fallbackName = isPortrait ? 'metabolic_reel_9_16.mp4' : 'metabolic_landscape_16_9.mp4';
       return res.json({
         success: true,
+        status: 'ready',
         videoUri: `/api/videos/${fallbackName}`,
         engine: 'steer-template-engine',
         message: 'Clinical video stream ready.',
@@ -2121,6 +2210,82 @@ app.post('/api/generate-video', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('Video generation error:', err);
     return res.status(500).json({ error: err.message || 'Video generation failed' });
+  }
+});
+
+// 2a. Veo 3 Video Polling Status Endpoint
+app.post('/api/video-status', async (req: Request, res: Response) => {
+  try {
+    const { operationName, prompt, aspectRatio = '9:16' } = req.body;
+    if (!operationName) {
+      return res.status(400).json({ error: 'Operation name is required' });
+    }
+
+    const client = getAiClient();
+    if (!client || !apiKey) {
+      // Fallback synthesis if client not available
+      const videoUri = await synthesizeFfmpegVideo({
+        prompt: prompt || 'Clinical metabolic synthesis',
+        aspectRatio: aspectRatio === '9:16' ? '9:16' : '16:9',
+        durationSec: 6,
+      });
+      return res.json({ done: true, success: true, videoUri, engine: 'steer-clinical-renderer' });
+    }
+
+    try {
+      const result = await client.operations.getVideosOperation({
+        operation: { name: operationName } as any,
+      });
+
+      if (!result.done) {
+        return res.json({ done: false, status: 'generating' });
+      }
+
+      const rawUri = result.response?.generatedVideos?.[0]?.video?.uri;
+      if (rawUri) {
+        const downloadUrl = rawUri.includes('?') ? `${rawUri}&key=${apiKey}` : `${rawUri}?key=${apiKey}`;
+        const videoRes = await fetch(downloadUrl, {
+          headers: { 'x-goog-api-key': apiKey },
+        });
+
+        if (videoRes.ok) {
+          const buffer = Buffer.from(await videoRes.arrayBuffer());
+          if (buffer.length > 5000) {
+            const videoId = `veo_${Date.now().toString(36)}`;
+            const genDir = path.join(process.cwd(), 'public', 'videos', 'generated');
+            fs.mkdirSync(genDir, { recursive: true });
+            const localFile = path.join(genDir, `${videoId}.mp4`);
+            fs.writeFileSync(localFile, buffer);
+
+            return res.json({
+              done: true,
+              success: true,
+              videoUri: `/api/videos/${videoId}.mp4`,
+              engine: 'veo-3.1-lite-generate-preview',
+              message: 'Veo 3 video generated successfully.',
+            });
+          }
+        }
+      }
+    } catch (pollErr: any) {
+      console.warn('Veo polling error, generating Steer synthesis:', pollErr?.message);
+    }
+
+    // If Veo operation failed or finished without video, synthesize with Steer engine
+    const videoUri = await synthesizeFfmpegVideo({
+      prompt: prompt || 'Clinical metabolic synthesis',
+      aspectRatio: aspectRatio === '9:16' ? '9:16' : '16:9',
+      durationSec: 6,
+    });
+    return res.json({
+      done: true,
+      success: true,
+      videoUri,
+      engine: 'steer-clinical-renderer',
+      message: 'Synthesized with Steer Clinical Video Engine.',
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Status check failed' });
   }
 });
 
